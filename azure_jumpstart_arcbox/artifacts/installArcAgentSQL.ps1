@@ -10,7 +10,7 @@ $ErrorActionPreference = 'SilentlyContinue'
 # These settings will be replaced by the portal when the script is generated
 $subId = $subscriptionId
 $resourceGroup = $myResourceGroup
-$location = $Azurelocation
+$location = $azureLocation
 $proxy=""
 $resourceTags= @{"Project"="jumpstart_arcbox"}
 $workspaceName = $logAnalyticsWorkspaceName

@@ -13,9 +13,9 @@
  & "$env:ProgramW6432\AzureConnectedMachineAgent\azcmagent.exe" connect `
  --service-principal-id $spnClientId `
  --service-principal-secret $spnClientSecret `
- --resource-group $resourceGroup `
+ --resource-group $myResourceGroup `
  --tenant-id $spnTenantId `
- --location $Azurelocation `
+ --location $azureLocation `
  --subscription-id $subscriptionId `
  --cloud "AzureCloud" `
  --tags "Project=jumpstart_arcbox" `
