@@ -157,13 +157,13 @@ $replaceFiles = @(
 )
 
 $replaceMap = @{
-    '$azureLocation'             = $azureLocation
-    '$myResourceGroup'           = $resourceGroup
-    '$subscriptionId'            = $subscriptionId
-    '$spnClientId'               = $spnClientId
-    '$spnClientSecret'           = $spnClientSecret
-    '$spnTenantId'               = $spnTenantId
-    '$logAnalyticsWorkspaceName' = $workspaceName
+    '$azureLocation'             = "'${azureLocation}'"
+    '$myResourceGroup'           = "'${resourceGroup}'"
+    '$subscriptionId'            = "'${subscriptionId}'"
+    '$spnClientId'               = "'${spnClientId}'"
+    '$spnClientSecret'           = "'${spnClientSecret}'"
+    '$spnTenantId'               = "'${spnTenantId}'"
+    '$logAnalyticsWorkspaceName' = "'${workspaceName}'"
 }
 
 Write-Output "Replacing values within Arc Agent install scripts..."
@@ -209,3 +209,4 @@ Copy-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administra
 # Removing the LogonScript Scheduled Task so it won't run on next reboot
 Write-Output "Removing scheduled task..."
 Unregister-ScheduledTask -TaskName "ArcServersLogonScript" -Confirm:$false
+Start-Sleep -Seconds 5

@@ -40,6 +40,9 @@ Write-Output "Logging into Azure PowerShell..."
 Connect-AzAccount -ServicePrincipal -SubscriptionId $subscriptionId -TenantId $spnTenantId -Credential $credObject
 Set-AzContext -Subscription $subscriptionId
 
+Write-Output "Getting Workspace ID..."
+$workspaceResourceId = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroupName $resourceGroup
+
 # Update mgmtMonitorWorkbook.json template with subscription ID and resource group values
 Write-Host "Updating Azure Monitor Workbook ARM template..."
 $monitorWorkbook = "${scriptDir}\mgmtMonitorWorkbook.json"
@@ -61,3 +64,4 @@ New-AzResourceGroupDeployment -ResourceGroupName $resourceGroup -TemplateFile $m
 # Removing the Scheduled Task
 Write-Output "Removing scheduled task..."
 Unregister-ScheduledTask -TaskName "MonitorWorkbookLogonScript" -Confirm:$false
+Start-Sleep -Seconds 5

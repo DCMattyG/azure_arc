@@ -22,7 +22,9 @@ param (
     [string]$workspaceName,
     [string]$templateBaseUrl,
     [string]$flavor,
-    [string]$automationTriggerAtLogon
+    [string]$automationTriggerAtLogon,
+    [string]$githubRepo,
+    [string]$githubBranch
 )
 
 try {
@@ -99,8 +101,10 @@ $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";"
 
 Set-Location $tmpDir
 Write-Output "Cloning Azure Arc Github repo..."
-cmd /c "git clone --filter=blob:none --sparse https://github.com/microsoft/azure_arc.git 2>&1"
+cmd /c "git clone --filter=blob:none --sparse https://github.com/${githubRepo}/azure_arc.git 2>&1"
 Set-Location "${tmpDir}\azure_arc"
+Write-Output "Checking out GitHub branch..."
+cmd /c "git checkout ${githubBranch}"
 Write-Output "Sparse checking out artifacts folder from repo..."
 cmd /c "git sparse-checkout set azure_jumpstart_arcbox/artifacts 2>&1"
 Write-Output "Moving scripts to ArcBox scripts folder..."
