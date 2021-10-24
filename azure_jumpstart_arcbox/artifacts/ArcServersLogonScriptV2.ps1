@@ -157,13 +157,13 @@ $replaceFiles = @(
 )
 
 $replaceMap = @{
-    '$azureLocation'             = "'${azureLocation}'"
-    '$myResourceGroup'           = "'${resourceGroup}'"
-    '$subscriptionId'            = "'${subscriptionId}'"
-    '$spnClientId'               = "'${spnClientId}'"
-    '$spnClientSecret'           = "'${spnClientSecret}'"
-    '$spnTenantId'               = "'${spnTenantId}'"
-    '$logAnalyticsWorkspaceName' = "'${workspaceName}'"
+    '$azureLocation'             = $azureLocation
+    '$myResourceGroup'           = $resourceGroup
+    '$subscriptionId'            = $subscriptionId
+    '$spnClientId'               = $spnClientId
+    '$spnClientSecret'           = $spnClientSecret
+    '$spnTenantId'               = $spnTenantId
+    '$logAnalyticsWorkspaceName' = $workspaceName
 }
 
 Write-Output "Replacing values within Arc Agent install scripts..."
@@ -171,18 +171,20 @@ foreach ($file in $replaceFiles) {
     $content = Get-Content "${scriptDir}\${file}"
 
     foreach ($item in $replaceMap.GetEnumerator()) {
-        $content = $content.Replace($item.Name, $item.Value)
+        $content = $content.Replace($item.Name, "'$($item.Value)'")
     }
 
-    Set-Content -Path "${scriptDir}\${file}" -Value $content
+    $content -join "`n" | Set-Content -Path "${scriptDir}\${file}" -NoNewline
 }
 
 # Copy installtion script to nested Windows VMs
+Write-Output "Transferring installation script to nested Windows VMs..."
 Copy-VMFile ArcBox-Win2K19 -SourcePath "$scriptDir\installArcAgent.ps1" -DestinationPath C:\Temp\installArcAgent.ps1 -CreateFullPath -FileSource Host
 Copy-VMFile ArcBox-Win2K22 -SourcePath "$scriptDir\installArcAgent.ps1" -DestinationPath C:\Temp\installArcAgent.ps1 -CreateFullPath -FileSource Host
 Copy-VMFile ArcBox-SQL -SourcePath "$scriptDir\installArcAgentSQL.ps1" -DestinationPath C:\Temp\installArcAgentSQL.ps1 -CreateFullPath -FileSource Host
 
 # Copy installtion script to nested Linux VMs
+Write-Output "Transferring installation script to nested Linux VMs..."
 Set-SCPItem -ComputerName $UbuntuVmIp -Credential $linCredObject -Destination '/tmp/' -Path "${scriptDir}\installArcAgentUbuntu.sh" -Force
 Set-SCPItem -ComputerName $CentOSVmIp -Credential $linCredObject -Destination '/tmp/' -Path "${scriptDir}\installArcAgentCentOS.sh" -Force
 

@@ -41,7 +41,7 @@ Connect-AzAccount -ServicePrincipal -SubscriptionId $subscriptionId -TenantId $s
 Set-AzContext -Subscription $subscriptionId
 
 Write-Output "Getting Workspace ID..."
-$workspaceResourceId = Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroupName $resourceGroup
+$workspaceResourceId = $(Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroupName $resourceGroup).ResourceId
 
 # Update mgmtMonitorWorkbook.json template with subscription ID and resource group values
 Write-Host "Updating Azure Monitor Workbook ARM template..."
