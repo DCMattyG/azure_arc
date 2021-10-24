@@ -16,28 +16,31 @@ param (
 
 $ErrorActionPreference = 'SilentlyContinue'
 
-Start-Transcript "C:\ArcBox\ArcServersLogonScript.log"
-
 # Create ArcBox folders
-$tempDir = "C:\Temp"
 $scriptDir = "C:\ArcBox\Scripts"
 $vmDir = "C:\ArcBox\Virtual Machines"
-$logsDir = "C:\ArcBox\Logs"
+$logDir = "C:\ArcBox\Logs"
 
 Write-Output "Create ArcBox folders..."
-New-Item -Path $tempDir -ItemType directory -Force
 New-Item -Path $scriptDir -ItemType directory -Force
 New-Item -Path $vmDir -ItemType directory -Force
-New-Item -Path $logsDir -ItemType directory -Force
+New-Item -Path $logDir -ItemType directory -Force
 
-# Azure CLI login with Serivce Principal
-Write-Output "Logging into Azure CLI..."
-az login --service-principal --username $spnClientID --password $spnClientSecret --tenant $spnTenantId
+Start-Transcript "${logDir}\ArcServersLogonScript.log"
+
+# Create Service Principal credential object
+$secPassword = ConvertTo-SecureString $spnClientSecret -AsPlainText -Force
+$credObject = New-Object System.Management.Automation.PSCredential ($spnClientId, $secPassword)
+
+# Azure PowerShell login with Serivce Principal
+Write-Output "Logging into Azure PowerShell..."
+Connect-AzAccount -ServicePrincipal -SubscriptionId $subscriptionId -TenantId $spnTenantId -Credential $credObject
+Set-AzContext -Subscription $subscriptionId
 
 # Register Azure providers
 Write-Output "Registering required providers..."
-az provider register --namespace Microsoft.HybridCompute --wait
-az provider register --namespace Microsoft.GuestConfiguration --wait
+Register-AzResourceProvider -ProviderNamespace Microsoft.HybridCompute
+Register-AzResourceProvider -ProviderNamespace Microsoft.GuestConfiguration
 
 # Install and configure DHCP service (used by Hyper-V nested VMs)
 Write-Output "Configure DHCP service..."
@@ -116,13 +119,13 @@ Start-VM -Name ArcBox-CentOS
 Write-Output "Waiting for VMs to start..."
 Start-Sleep -Seconds 20
 
-# Create Windows credential objects
-[securestring]$secWindowsPassword = ConvertTo-SecureString $nestedWindowsPassword -AsPlainText -Force
-[pscredential]$winCredObject = New-Object System.Management.Automation.PSCredential ($nestedWindowsUsername, $secWindowsPassword)
+# Create Windows credential object
+$secWindowsPassword = ConvertTo-SecureString $nestedWindowsPassword -AsPlainText -Force
+$winCredObject = New-Object System.Management.Automation.PSCredential ($nestedWindowsUsername, $secWindowsPassword)
 
 # Create Linux credential object
-[securestring]$secLinuxPassword = ConvertTo-SecureString $nestedLinuxPassword -AsPlainText -Force
-[pscredential]$linCredObject = New-Object System.Management.Automation.PSCredential ($nestedLinuxUsername, $secLinuxPassword)
+$secLinuxPassword = ConvertTo-SecureString $nestedLinuxPassword -AsPlainText -Force
+$linCredObject = New-Object System.Management.Automation.PSCredential ($nestedLinuxUsername, $secLinuxPassword)
 
 Write-Output "Restarting VM network adapters..."
 Invoke-Command -VMName ArcBox-Win2K19 -ScriptBlock { Get-NetAdapter | Restart-NetAdapter } -Credential $winCredObject
@@ -204,4 +207,5 @@ Invoke-SSHCommand -Index $sessionid.sessionid -Command $Command -TimeOut 60 -War
 Copy-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\Hyper-V Manager.lnk" -Destination "C:\Users\All Users\Desktop" -Force
 
 # Removing the LogonScript Scheduled Task so it won't run on next reboot
+Write-Output "Removing scheduled task..."
 Unregister-ScheduledTask -TaskName "ArcServersLogonScript" -Confirm:$false

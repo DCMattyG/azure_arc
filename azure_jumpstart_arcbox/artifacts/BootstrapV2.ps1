@@ -33,8 +33,20 @@ try {
 
 $triggerSwitch = @(@{ AtStartup = $true },@{ AtLogon = $true })[$triggerBool]
 
+# Create ArcBox folders
+$tmpDir = "C:\Temp"
+$scriptDir = "C:\ArcBox\Scripts"
+$appDir = "C:\ArcBox\Apps"
+$logDir = "C:\ArcBox\Logs"
+
+Write-Output "Create ArcBox folders..."
+New-Item -Path $tmpDir -ItemType directory -Force
+New-Item -Path $scriptDir -ItemType directory -Force
+New-Item -Path $appDir -ItemType directory -Force
+New-Item -Path $logDir -ItemType directory -Force
+
 Write-Output "Starting transcript..."
-Start-Transcript "C:\ArcBox\Logs\Bootstrap.log"
+Start-Transcript "${logDir}\Bootstrap.log"
 
 $ErrorActionPreference = 'SilentlyContinue'
 
@@ -85,31 +97,19 @@ Foreach($app in $chocolateyAppsCore) {
 Write-Output "Refreshing environment variables..."
 $env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")
 
-# Create ArcBox folders
-$tempDir = "C:\Temp"
-$scriptDir = "C:\ArcBox\Scripts"
-$appsDir = "C:\ArcBox\Apps"
-$logsDir = "C:\ArcBox\Logs"
-
-Write-Output "Create ArcBox folders..."
-New-Item -Path $tempDir -ItemType directory -Force
-New-Item -Path $scriptDir -ItemType directory -Force
-New-Item -Path $appsDir -ItemType directory -Force
-New-Item -Path $logsDir -ItemType directory -Force
-
-Set-Location $tempDir
+Set-Location $tmpDir
 Write-Output "Cloning Azure Arc Github repo..."
 cmd /c "git clone --filter=blob:none --sparse https://github.com/microsoft/azure_arc.git 2>&1"
-Set-Location "${tempDir}\azure_arc"
+Set-Location "${tmpDir}\azure_arc"
 Write-Output "Sparse checking out artifacts folder from repo..."
 cmd /c "git sparse-checkout set azure_jumpstart_arcbox/artifacts 2>&1"
 Write-Output "Moving scripts to ArcBox scripts folder..."
-Move-Item -Path "${tempDir}\azure_arc\azure_jumpstart_arcbox\artifacts\*" -Destination $scriptDir
+Move-Item -Path "${tmpDir}\azure_arc\azure_jumpstart_arcbox\artifacts\*" -Destination $scriptDir
 
 # Creating scheduled task for MonitorWorkbookLogonScript.ps1
 Write-Output "Creating schedule task for Azure Arc monitoring..."
 $Trigger = New-ScheduledTaskTrigger @triggerSwitch
-$Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument 'C:\ArcBox\Scripts\MonitorWorkbookLogonScript.ps1'
+$Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-ExecutionPolicy Bypass -File ${scriptDir}\MonitorWorkbookLogonScriptV2.ps1 -spnClientId ${spnClientId} -spnClientSecret ${spnClientSecret} -spnTenantId ${spnTenantId} -resourceGroup ${resourceGroup} -subscriptionId ${subscriptionId} -workspaceName ${workspaceName}"
 Register-ScheduledTask -TaskName "MonitorWorkbookLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
 
 # Disabling Windows Server Manager Scheduled Task
@@ -120,31 +120,31 @@ if ($flavor -in 'Full','ITPro') {
     # Creating scheduled task for ArcServersLogonScript.ps1
     Write-Output "Creating schedule task for Azure Arc servers onboarding..."
     $Trigger = New-ScheduledTaskTrigger @triggerSwitch
-    $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument 'C:\ArcBox\Scripts\ArcServersLogonScript.ps1'
+    $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-ExecutionPolicy Bypass -File ${scriptDir}\ArcServersLogonScriptV2.ps1 -spnClientId ${spnClientId} -spnClientSecret ${spnClientSecret} -spnTenantId ${spnTenantId} -azureLocation ${azureLocation} -resourceGroup ${resourceGroup} -subscriptionId ${subscriptionId} -workspaceName ${workspaceName}"
     Register-ScheduledTask -TaskName "ArcServersLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
 }
 
 if ($flavor -in 'Full','Developer') {
     Write-Output "Downloading Azure Data Studio..."
-    Invoke-WebRequest "https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable" -OutFile "C:\ArcBox\Apps\azuredatastudio.zip"
+    Invoke-WebRequest "https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable" -OutFile "${appDir}\azuredatastudio.zip"
     Write-Output "Downloading Azure Data CLI..."
-    Invoke-WebRequest "https://aka.ms/azdata-msi" -OutFile "C:\ArcBox\Apps\AZDataCLI.msi"
+    Invoke-WebRequest "https://aka.ms/azdata-msi" -OutFile "${appDir}\AZDataCLI.msi"
     Write-Output "Downloading SQL Query Stress Test..."
-    Invoke-WebRequest "https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip" -OutFile "C:\ArcBox\Apps\SqlQueryStress.zip"    
+    Invoke-WebRequest "https://github.com/ErikEJ/SqlQueryStress/releases/download/102/SqlQueryStress.zip" -OutFile "${appDir}\SqlQueryStress.zip"    
 
     Write-Output "Setting Windows path aliases..."
     New-Item -path alias:kubectl -value 'C:\ProgramData\chocolatey\lib\kubernetes-cli\tools\kubernetes\client\bin\kubectl.exe'
     New-Item -path alias:azdata -value 'C:\Program Files (x86)\Microsoft SDKs\Azdata\CLI\wbin\azdata.cmd'
 
     Write-Output "Expanding Azure Data Studio..."
-    Expand-Archive C:\ArcBox\Apps\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio'
+    Expand-Archive ${appDir}\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio'
     Write-Output "Installing Azure Data CLI..."
-    Start-Process msiexec.exe -Wait -ArgumentList '/I C:\ArcBox\Apps\AZDataCLI.msi /quiet'
+    Start-Process msiexec.exe -Wait -ArgumentList "/I ${appDir}\AZDataCLI.msi /quiet"
 
     # Creating scheduled task for DataServicesLogonScript.ps1
     Write-Output "Creating schedule task for Azure Arc data services onboarding..."
     $Trigger = New-ScheduledTaskTrigger @triggerSwitch
-    $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument 'C:\ArcBox\Scripts\DataServicesLogonScript.ps1'
+    $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "${scriptDir}\DataServicesLogonScript.ps1"
     Register-ScheduledTask -TaskName "DataServicesLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
 }
 
@@ -177,7 +177,7 @@ if ($flavor -in 'Full','Developer') {
 # }
 
 Write-Output "Cleaning up temporary directory..."
-Remove-Item -Path "${tempDir}\*" -Recurse -Force
+Remove-Item -Path "${tmpDir}\*" -Recurse -Force
 
 # Install Hyper-V and reboot
 Write-Host "Installing Hyper-V role and restarting..."
