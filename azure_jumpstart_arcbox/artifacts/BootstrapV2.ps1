@@ -3,28 +3,26 @@ param (
     [string]$spnClientId,
     [string]$spnClientSecret,
     [string]$spnTenantId,
-    [string]$spnAuthority,
     [string]$subscriptionId,
     [string]$resourceGroup,
     [string]$azdataUsername,
     [string]$azdataPassword,
     [string]$acceptEula,
-    [string]$registryUsername,
-    [string]$registryPassword,
     [string]$arcDcName,
     [string]$azureLocation,
-    [string]$mssqlmiName,
-    [string]$POSTGRES_NAME,   
-    [string]$POSTGRES_WORKER_NODE_COUNT,
-    [string]$POSTGRES_DATASIZE,
-    [string]$POSTGRES_SERVICE_TYPE,
     [string]$stagingStorageAccountName,
     [string]$workspaceName,
     [string]$templateBaseUrl,
     [string]$flavor,
     [string]$automationTriggerAtLogon,
     [string]$githubRepo,
-    [string]$githubBranch
+    [string]$githubBranch,
+
+    [string]$mssqlmiName,
+    [string]$POSTGRES_NAME,   
+    [string]$POSTGRES_WORKER_NODE_COUNT,
+    [string]$POSTGRES_DATASIZE,
+    [string]$POSTGRES_SERVICE_TYPE
 )
 
 try {
@@ -35,12 +33,13 @@ try {
 
 $triggerSwitch = @(@{ AtStartup = $true },@{ AtLogon = $true })[$triggerBool]
 
-# Create ArcBox folders
+# Set ArcBox paths
 $tmpDir = "C:\Temp"
 $scriptDir = "C:\ArcBox\Scripts"
 $appDir = "C:\ArcBox\Apps"
 $logDir = "C:\ArcBox\Logs"
 
+# Create ArcBox folders
 Write-Output "Create ArcBox folders..."
 New-Item -Path $tmpDir -ItemType directory -Force
 New-Item -Path $scriptDir -ItemType directory -Force
@@ -72,7 +71,10 @@ if (Test-Path "C:\ProgramData\chocolatey\choco.exe") {
     Write-Output "Chocolatey already installed, proceeding..."
 } else {
     Write-Output "Chocolatey not detected, installing..."
-    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+    # Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+    $Script = Invoke-WebRequest 'https://chocolatey.org/install.ps1'
+    $ScriptBlock = [Scriptblock]::Create($Script.Content)
+    Invoke-Command -ScriptBlock $ScriptBlock
 }
 
 Write-Output "Installing required applications via Chocolatey..."
@@ -148,39 +150,12 @@ if ($flavor -in 'Full','Developer') {
     # Creating scheduled task for DataServicesLogonScript.ps1
     Write-Output "Creating schedule task for Azure Arc data services onboarding..."
     $Trigger = New-ScheduledTaskTrigger @triggerSwitch
-    $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "${scriptDir}\DataServicesLogonScript.ps1"
+    $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument "-ExecutionPolicy Bypass -File ${scriptDir}\DataServicesLogonScript.ps1 -adminUsername ${adminUsername} -spnClientId ${spnClientId} -spnClientSecret ${spnClientSecret} -spnTenantId ${spnTenantId} -stagingStorageAccountName ${stagingStorageAccountName} -azureLocation ${azureLocation} -resourceGroup ${resourceGroup} -subscriptionId ${subscriptionId} -workspaceName ${workspaceName} -azdataUsername ${azdataUsername} -azdataPassword ${azdataPassword}"
     Register-ScheduledTask -TaskName "DataServicesLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
 }
 
-# $replaceFiles = @(
-#     'installArcAgent.ps1'
-#     'installArcAgentSQL.ps1'
-#     'installArcAgentCentOS.sh'
-#     'installArcAgentUbuntu.sh'
-# )
-
-# $replaceMap = @{
-#     '$azureLocation'             = $azureLocation
-#     '$myResourceGroup'           = $resourceGroup
-#     '$subscriptionId'            = $subscriptionId
-#     '$spnClientId'               = $spnClientId
-#     '$spnClientSecret'           = $spnClientSecret
-#     '$spnTenantId'               = $spnTenantId
-#     '$logAnalyticsWorkspaceName' = $workspaceName
-# }
-
-# Write-Output "Replacing values within Arc Agent install scripts..."
-# foreach ($file in $replaceFiles) {
-#     $content = Get-Content "${scriptDir}\${file}"
-
-#     foreach ($item in $replaceMap.GetEnumerator()) {
-#         $content = $content.Replace($item.Name, $item.Value)
-#     }
-
-#     Set-Content -Path "${scriptDir}\${file}" -Value $content
-# }
-
 Write-Output "Cleaning up temporary directory..."
+Set-Location $tmpDir
 Remove-Item -Path "${tmpDir}\*" -Recurse -Force
 
 # Install Hyper-V and reboot

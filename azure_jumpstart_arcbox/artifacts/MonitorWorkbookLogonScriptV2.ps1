@@ -21,19 +21,15 @@ function Format-Json {
     return $outputJson
 }
 
-# Create ArcBox folders
+# Set ArcBox paths
 $scriptDir = "C:\ArcBox\Scripts"
 $logDir = "C:\ArcBox\Logs"
-
-Write-Output "Create ArcBox folders..."
-New-Item -Path $scriptDir -ItemType directory -Force
-New-Item -Path $logDir -ItemType directory -Force
 
 Start-Transcript -Path "${logDir}\MonitorWorkbookLogonScript.log"
 
 # Create Service Principal credential object
 $secPassword = ConvertTo-SecureString $spnClientSecret -AsPlainText -Force
-$credObject = New-Object System.Management.Automation.PSCredential ($spnClientId, $secPassword)
+$credObject = New-Object System.Management.Automation.PSCredential($spnClientId, $secPassword)
 
 # Azure PowerShell login with Serivce Principal
 Write-Output "Logging into Azure PowerShell..."

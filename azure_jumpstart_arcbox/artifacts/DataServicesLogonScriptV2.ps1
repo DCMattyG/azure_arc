@@ -1,41 +1,77 @@
-Start-Transcript -Path C:\ArcBox\DataServicesLogonScript.log
+param (
+    [string]$adminUsername,
+    [string]$spnClientId,
+    [string]$spnClientSecret,
+    [string]$spnTenantId,
+    [string]$stagingStorageAccountName,
+    [string]$azureLocation,
+    [string]$resourceGroup,
+    [string]$subscriptionId,
+    [string]$workspaceName,
+    [string]$azdataUsername,
+    [string]$azdataPassword
+)
 
+$ErrorActionPreference = 'SilentlyContinue'
+
+function Format-Json {
+    param(
+        [Parameter(Mandatory,ValueFromPipeline)]
+        [object]$jsonObject
+    )
+
+    $newtonJson = [Newtonsoft.Json.JsonConvert]::DeserializeObject($(ConvertTo-Json $jsonObject -Depth 8))
+    $outputJson = [Newtonsoft.Json.JsonConvert]::SerializeObject($newtonJson, [Newtonsoft.Json.Formatting]::Indented)
+
+    return $outputJson
+}
+
+# Set ArcBox paths
+$scriptDir = "C:\ArcBox\Scripts"
+$logDir = "C:\ArcBox\Logs"
+
+Start-Transcript -Path "${logDir}\DataServicesLogonScript.log"
+
+Write-Output "Disabling Windows Firewall..."
 Set-NetFirewallProfile -Profile Domain,Public,Private -Enabled False
 
-# Required for azcopy
-$azurePassword = ConvertTo-SecureString $env:spnClientSecret -AsPlainText -Force
-$psCred = New-Object System.Management.Automation.PSCredential($env:spnClientID , $azurePassword)
-Connect-AzAccount -Credential $psCred -TenantId $env:spnTenantId -ServicePrincipal
+# Create Service Principal credential object
+$secPassword = ConvertTo-SecureString $spnClientSecret -AsPlainText -Force
+$credObject = New-Object System.Management.Automation.PSCredential($spnClientId, $secPassword)
+
+# Azure PowerShell login with Serivce Principal
+Write-Output "Logging into Azure PowerShell..."
+Connect-AzAccount -ServicePrincipal -SubscriptionId $subscriptionId -TenantId $spnTenantId -Credential $credObject
+Set-AzContext -Subscription $subscriptionId
 
 # Required for CLI commands
-az login --service-principal --username $env:spnClientID --password $env:spnClientSecret --tenant $env:spnTenantId
+Write-Output "Logging into Azure CLI..."
+az login --service-principal --username $spnClientId --password $spnClientSecret --tenant $spnTenantId
 
 # Install Azure Data Studio extensions
 Write-Host "`n"
 Write-Host "Installing Azure Data Studio Extensions"
 Write-Host "`n"
-$env:argument1="--install-extension"
-$env:argument2="Microsoft.arc"
-$env:argument3="microsoft.azuredatastudio-postgresql"
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $env:argument1 $env:argument2
-& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd" $env:argument1 $env:argument3
+& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd --install-extension Microsoft.arc"
+& "C:\Program Files\Azure Data Studio\bin\azuredatastudio.cmd --install-extension Microsoft.azuredatastudio-postgresql"
 
 # Create Azure Data Studio desktop shortcut
 Write-Host "`n"
-Write-Host "Creating Azure Data Studio Desktop shortcut"
+Write-Host "Creating Azure Data Studio Desktop shortcut..."
 Write-Host "`n"
 $TargetFile = "C:\Program Files\Azure Data Studio\azuredatastudio.exe"
-$ShortcutFile = "C:\Users\$env:adminUsername\Desktop\Azure Data Studio.lnk"
+$ShortcutFile = "C:\Users\${adminUsername}\Desktop\Azure Data Studio.lnk"
 $WScriptShell = New-Object -ComObject WScript.Shell
 $Shortcut = $WScriptShell.CreateShortcut($ShortcutFile)
 $Shortcut.TargetPath = $TargetFile
 $Shortcut.Save()
 
 # Register Azure providers
-az provider register --namespace Microsoft.Kubernetes --wait
-az provider register --namespace Microsoft.KubernetesConfiguration --wait
-az provider register --namespace Microsoft.ExtendedLocation --wait
-az provider register --namespace Microsoft.AzureArcData --wait
+Write-Output "Registering required providers..."
+Register-AzResourceProvider -ProviderNamespace Microsoft.Kubernetes
+Register-AzResourceProvider -ProviderNamespace Microsoft.KubernetesConfiguration
+Register-AzResourceProvider -ProviderNamespace Microsoft.ExtendedLocation
+Register-AzResourceProvider -ProviderNamespace Microsoft.AzureArcData
 
 # Making extension install dynamic
 az config set extension.use_dynamic_install=yes_without_prompt
@@ -43,18 +79,18 @@ Write-Host "`n"
 az -v
 
 # Downloading CAPI Kubernetes cluster kubeconfig file
-Write-Host "Downloading CAPI Kubernetes cluster kubeconfig file"
-$sourceFile = "https://$env:stagingStorageAccountName.blob.core.windows.net/staging-capi/config.arcbox-capi-data"
-$context = (Get-AzStorageAccount -ResourceGroupName $env:resourceGroup).Context
+Write-Host "Downloading CAPI Kubernetes cluster kubeconfig file..."
+$sourceFile = "https://${stagingStorageAccountName}.blob.core.windows.net/staging-capi/config.arcbox-capi-data"
+$context = (Get-AzStorageAccount -ResourceGroupName $resourceGroup).Context
 $sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
 $sourceFile = $sourceFile + $sas
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$env:USERNAME\.kube\config"
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile "C:\Users\${adminUsername}\.kube\config"
 kubectl config rename-context "arcbox-capi-data-admin@arcbox-capi-data" "arcbox-capi"
 
 # Creating Storage Class with azure-managed-disk for the CAPI cluster
 Write-Host "`n"
 Write-Host "Creating Storage Class with azure-managed-disk for the CAPI cluster"
-kubectl apply -f "C:\ArcBox\capiStorageClass.yaml"
+kubectl apply -f "${scriptDir}\capiStorageClass.yaml"
 
 kubectl label node --all failure-domain.beta.kubernetes.io/zone-
 kubectl label node --all topology.kubernetes.io/zone-
@@ -70,131 +106,131 @@ azdata --version
 Write-Host "Onboarding the cluster as an Azure Arc-enabled Kubernetes cluster"
 Write-Host "`n"
 $connectedClusterName="ArcBox-CAPI-Data"
-az connectedk8s connect --name $connectedClusterName --resource-group $env:resourceGroup --location $env:azureLocation --tags 'Project=jumpstart_arcbox'
+az connectedk8s connect --name $connectedClusterName --resource-group $resourceGroup --location $azureLocation --tags 'Project=jumpstart_arcbox'
 Start-Sleep -Seconds 10
 $kubectlMonShell = Start-Process -PassThru PowerShell {for (0 -lt 1) {kubectl get pod -n arc; Start-Sleep -Seconds 5; Clear-Host }}
-az k8s-extension create --name arc-data-services --extension-type microsoft.arcdataservices --cluster-type connectedClusters --cluster-name $connectedClusterName --resource-group $env:resourceGroup --auto-upgrade false --scope cluster --release-namespace arc --config Microsoft.CustomLocation.ServiceAccount=sa-bootstrapper
+az k8s-extension create --name arc-data-services --extension-type microsoft.arcdataservices --cluster-type connectedClusters --cluster-name $connectedClusterName --resource-group $resourceGroup --auto-upgrade false --scope cluster --release-namespace arc --config Microsoft.CustomLocation.ServiceAccount=sa-bootstrapper
 
-Do {
+do {
     Write-Host "Waiting for bootstrapper pod, hold tight..."
-    Start-Sleep -Seconds 20
+    Start-Sleep -Seconds 30
     $podStatus = $(if(kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet){"Ready!"}Else{"Nope"})
-    } while ($podStatus -eq "Nope")
+} while ($podStatus -eq "Nope")
 
-$connectedClusterId = az connectedk8s show --name $connectedClusterName --resource-group $env:resourceGroup --query id -o tsv
-$extensionId = az k8s-extension show --name arc-data-services --cluster-type connectedClusters --cluster-name $connectedClusterName --resource-group $env:resourceGroup --query id -o tsv
+$connectedClusterId = az connectedk8s show --name $connectedClusterName --resource-group $resourceGroup --query id -o tsv
+$extensionId = az k8s-extension show --name arc-data-services --cluster-type connectedClusters --cluster-name $connectedClusterName --resource-group $resourceGroup --query id -o tsv
 Start-Sleep -Seconds 20
-az customlocation create --name 'arcbox-cl' --resource-group $env:resourceGroup --namespace arc --host-resource-id $connectedClusterId --cluster-extension-ids $extensionId --kubeconfig "C:\Users\$env:USERNAME\.kube\config"
+az customlocation create --name 'arcbox-cl' --resource-group $resourceGroup --namespace arc --host-resource-id $connectedClusterId --cluster-extension-ids $extensionId --kubeconfig "C:\Users\${adminUsername}\.kube\config"
 
-$workspaceResourceId = $(az resource show --resource-group $env:resourceGroup --name $env:workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query id -o tsv)
+Write-Output "Getting Workspace ID..."
+$workspaceResourceId = $(Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroupName $resourceGroup).ResourceId
 
 # Deploying Azure Monitor for containers Kubernetes extension instance
 Write-Host "`n"
 Write-Host "Create Azure Monitor for containers Kubernetes extension instance"
 Write-Host "`n"
-az k8s-extension create --name "azuremonitor-containers" --cluster-name $connectedClusterName --resource-group $env:resourceGroup --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceResourceId
+az k8s-extension create --name "azuremonitor-containers" --cluster-name $connectedClusterName --resource-group $resourceGroup --cluster-type connectedClusters --extension-type Microsoft.AzureMonitor.Containers --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceResourceId
 
 # Deploying Azure Defender Kubernetes extension instance
 Write-Host "`n"
 Write-Host "Create Azure Defender Kubernetes extension instance"
 Write-Host "`n"
-az k8s-extension create --name "azure-defender" --cluster-name $connectedClusterName --resource-group $env:resourceGroup --cluster-type connectedClusters --extension-type Microsoft.AzureDefender.Kubernetes --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceResourceId
+az k8s-extension create --name "azure-defender" --cluster-name $connectedClusterName --resource-group $resourceGroup --cluster-type connectedClusters --extension-type Microsoft.AzureDefender.Kubernetes --configuration-settings logAnalyticsWorkspaceResourceID=$workspaceResourceId
 
 # Deploying Azure Arc Data Controller
 Write-Host "Deploying Azure Arc Data Controller"
 Write-Host "`n"
 
-$customLocationId = $(az customlocation show --name "arcbox-cl" --resource-group $env:resourceGroup --query id -o tsv)
-$workspaceId = $(az resource show --resource-group $env:resourceGroup --name $env:workspaceName --resource-type "Microsoft.OperationalInsights/workspaces" --query properties.customerId -o tsv)
-$workspaceKey = $(az monitor log-analytics workspace get-shared-keys --resource-group $env:resourceGroup --workspace-name $env:workspaceName --query primarySharedKey -o tsv)
+$customLocationId = $(az customlocation show --name "arcbox-cl" --resource-group $resourceGroup --query id -o tsv)
+$workspaceId = $(Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroupName $resourceGroup).CustomerId.Guid
+$workspaceKey = Get-AzOperationalInsightsWorkspaceSharedKey -Name $workspaceName -ResourceGroupName $resourceGroup
 
-$dataControllerParams = "C:\ArcBox\dataController.parameters.json"
+$replaceParams = @{
+    'resourceGroup'           = $resourceGroup
+    'azdataUsername'          = $azdataUsername
+    'azdataPassword'          = $azdataPassword
+    'customLocation'          = $customLocationId
+    'subscriptionId'          = $subscriptionId
+    'spnClientId'             = $spnClientId
+    'spnClientSecret'         = $spnClientSecret
+    'spnTenantId'             = $spnTenantId
+    'logAnalyticsWorkspaceId' = $workspaceId
+    'logAnalyticsPrimaryKey'  = $workspaceKey
+}
 
-(Get-Content -Path $dataControllerParams) -replace 'resourceGroup-stage',$env:resourceGroup | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'azdataUsername-stage',$env:AZDATA_USERNAME | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'azdataPassword-stage',$env:AZDATA_PASSWORD | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'customLocation-stage',$customLocationId | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'subscriptionId-stage',$env:subscriptionId | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'spnClientId-stage',$env:spnClientId | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'spnTenantId-stage',$env:spnTenantId | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'spnClientSecret-stage',$env:spnClientSecret | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'logAnalyticsWorkspaceId-stage',$workspaceId | Set-Content -Path $dataControllerParams
-(Get-Content -Path $dataControllerParams) -replace 'logAnalyticsPrimaryKey-stage',$workspaceKey | Set-Content -Path $dataControllerParams
+Write-Host "Updating Data Controller ARM template parameters..."
+$dataController = "${scriptDir}\dataController.json"
+$dataControllerParams = "${scriptDir}\dataController.parameters.json"
+$dataParamsJson = $(Get-Content -Path $dataControllerParams -Raw) | ConvertFrom-Json
 
-az deployment group create --resource-group $env:resourceGroup --template-file "C:\ArcBox\dataController.json" --parameters "C:\ArcBox\dataController.parameters.json"
+foreach ($param in $replaceParams.GetEnumerator()) {
+    $dataParamsJson.parameters.$($param.Name).value = $param.Value
+}
+
+$dataParamsJson | Format-Json | Set-Content -Path $dataControllerParams
+
+Write-Host "Deploying Azure Monitor Workbook ARM template..."
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroup -TemplateFile $dataController -TemplateParameterFile $dataControllerParams
+
 Write-Host "`n"
 
-Do {
+do {
     Write-Host "Waiting for data controller. Hold tight, this might take a few minutes..."
-    Start-Sleep -Seconds 45
-    $dcStatus = $(if(kubectl get datacontroller -n arc | Select-String "Ready" -Quiet){"Ready!"}Else{"Nope"})
-    } while ($dcStatus -eq "Nope")
+    Start-Sleep -Seconds 30
+    $dcStatus = $(if(kubectl get datacontroller -n arc | Select-String "Ready" -Quiet) { "Ready!" } Else { "Nope" })
+} while ($dcStatus -eq "Nope")
+
 Write-Host "Azure Arc data controller is ready!"
 Write-Host "`n"
 
 # Deploy SQL MI and PostgreSQL data services
-& "C:\ArcBox\DeploySQLMI.ps1"
-& "C:\ArcBox\DeployPostgreSQL.ps1"
+& "${scriptDir}\DeploySQLMI.ps1"
+& "${scriptDir}\DeployPostgreSQL.ps1"
 
 # Replacing Azure Data Studio settings template file
 Write-Host "Replacing Azure Data Studio settings template file"
-New-Item -Path "C:\Users\$env:adminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
-Copy-Item -Path "C:\ArcBox\settingsTemplate.json" -Destination "C:\Users\$env:adminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
+New-Item -Path "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\" -Name "User" -ItemType "directory" -Force
+Copy-Item -Path "${scriptDir}\settingsTemplate.json" -Destination "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
 
 # Downloading Rancher K3s kubeconfig file
 Write-Host "Downloading Rancher K3s kubeconfig file"
-$sourceFile = "https://$env:stagingStorageAccountName.blob.core.windows.net/staging-k3s/config"
-$context = (Get-AzStorageAccount -ResourceGroupName $env:resourceGroup).Context
+$sourceFile = "https://$stagingStorageAccountName.blob.core.windows.net/staging-k3s/config"
+$context = (Get-AzStorageAccount -ResourceGroupName $resourceGroup).Context
 $sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
 $sourceFile = $sourceFile + $sas
-azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\$env:USERNAME\.kube\config-k3s"
+azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\${adminUsername}\.kube\config-k3s"
 
 # Merging kubeconfig files from CAPI and Rancher K3s
 Write-Host "Merging kubeconfig files from CAPI and Rancher K3s clusters"
-Copy-Item -Path "C:\Users\$env:USERNAME\.kube\config" -Destination "C:\Users\$env:USERNAME\.kube\config.backup"
-$env:KUBECONFIG="C:\Users\$env:USERNAME\.kube\config;C:\Users\$env:USERNAME\.kube\config-k3s"
-kubectl config view --raw > C:\users\$env:USERNAME\.kube\config_tmp
-kubectl config get-clusters --kubeconfig=C:\users\$env:USERNAME\.kube\config_tmp
-Remove-Item -Path "C:\Users\$env:USERNAME\.kube\config"
-Remove-Item -Path "C:\Users\$env:USERNAME\.kube\config-k3s"
-Move-Item -Path "C:\Users\$env:USERNAME\.kube\config_tmp" -Destination "C:\users\$env:USERNAME\.kube\config"
-$env:KUBECONFIG="C:\users\$env:USERNAME\.kube\config"
+Copy-Item -Path "C:\Users\${adminUsername}\.kube\config" -Destination "C:\Users\${adminUsername}\.kube\config.backup"
+$env:KUBECONFIG="C:\Users\${adminUsername}\.kube\config;C:\Users\${adminUsername}\.kube\config-k3s"
+kubectl config view --raw > C:\users\${adminUsername}\.kube\config_tmp
+kubectl config get-clusters --kubeconfig=C:\users\${adminUsername}\.kube\config_tmp
+Remove-Item -Path "C:\Users\${adminUsername}\.kube\config"
+Remove-Item -Path "C:\Users\${adminUsername}\.kube\config-k3s"
+Move-Item -Path "C:\Users\${adminUsername}\.kube\config_tmp" -Destination "C:\Users\${adminUsername}\.kube\config"
+$env:KUBECONFIG="C:\Users\${adminUsername}\.kube\config"
 kubectx
 
 # Creating desktop url shortcuts for built-in Grafana and Kibana services 
 $GrafanaURL = kubectl get service/metricsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 $GrafanaURL = "https://"+$GrafanaURL+":3000"
 $Shell = New-Object -ComObject ("WScript.Shell")
-$Favorite = $Shell.CreateShortcut($env:USERPROFILE + "\Desktop\Grafana.url")
+$Favorite = $Shell.CreateShortcut("C:\Users\${adminUsername}\Desktop\Grafana.url")
 $Favorite.TargetPath = $GrafanaURL;
 $Favorite.Save()
 
 $KibanaURL = kubectl get service/logsui-external-svc -n arc -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 $KibanaURL = "https://"+$KibanaURL+":5601"
 $Shell = New-Object -ComObject ("WScript.Shell")
-$Favorite = $Shell.CreateShortcut($env:USERPROFILE + "\Desktop\Kibana.url")
+$Favorite = $Shell.CreateShortcut("C:\Users\${adminUsername}\Desktop\Kibana.url")
 $Favorite.TargetPath = $KibanaURL;
 $Favorite.Save()
 
 # Changing to Jumpstart ArcBox wallpaper
-$imgPath="C:\ArcBox\wallpaper.png"
-$code = @' 
-using System.Runtime.InteropServices; 
-namespace Win32{ 
-    
-     public class Wallpaper{ 
-        [DllImport("user32.dll", CharSet=CharSet.Auto)] 
-         static extern int SystemParametersInfo (int uAction , int uParam , string lpvParam , int fuWinIni) ; 
-         
-         public static void SetWallpaper(string thePath){ 
-            SystemParametersInfo(20,0,thePath,3); 
-         }
-    }
- } 
-'@
+$wallpaperPath = "${scriptDir}\wallpaper.png"
 
-add-type $code 
-[Win32.Wallpaper]::SetWallpaper($imgPath)
+& "${scriptDir}\changeWallpaper.ps1 -Image ${wallpaperPath}"
 
 # Kill the open PowerShell monitoring kubectl get pods
 Stop-Process -Id $kubectlMonShell.Id

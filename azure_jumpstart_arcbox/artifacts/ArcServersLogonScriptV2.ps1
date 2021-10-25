@@ -16,21 +16,20 @@ param (
 
 $ErrorActionPreference = 'SilentlyContinue'
 
-# Create ArcBox folders
+# Set ArcBox paths
 $scriptDir = "C:\ArcBox\Scripts"
 $vmDir = "C:\ArcBox\Virtual Machines"
 $logDir = "C:\ArcBox\Logs"
 
+# Create ArcBox folders
 Write-Output "Create ArcBox folders..."
-New-Item -Path $scriptDir -ItemType directory -Force
 New-Item -Path $vmDir -ItemType directory -Force
-New-Item -Path $logDir -ItemType directory -Force
 
 Start-Transcript "${logDir}\ArcServersLogonScript.log"
 
 # Create Service Principal credential object
 $secPassword = ConvertTo-SecureString $spnClientSecret -AsPlainText -Force
-$credObject = New-Object System.Management.Automation.PSCredential ($spnClientId, $secPassword)
+$credObject = New-Object System.Management.Automation.PSCredential($spnClientId, $secPassword)
 
 # Azure PowerShell login with Serivce Principal
 Write-Output "Logging into Azure PowerShell..."
@@ -196,14 +195,14 @@ Invoke-Command -VMName ArcBox-SQL -ScriptBlock { powershell -File C:\Temp\instal
 
 Write-Output "Onboarding the nested Linux VMs as Azure Arc-enabled servers..."
 # Onboarding nested Ubuntu server VM
-$SessionID = New-SSHSession -ComputerName $UbuntuVmIp -Credential $linCredObject -Force -WarningAction SilentlyContinue
+$ubuntuSession = New-SSHSession -ComputerName $UbuntuVmIp -Credential $linCredObject -Force -WarningAction SilentlyContinue
 $Command = "sudo sh /tmp/installArcAgentUbuntu.sh"
-Invoke-SSHCommand -Index $sessionid.sessionid -Command $Command -Timeout 60 -WarningAction SilentlyContinue | Out-Null
+$(Invoke-SSHCommand -SSHSession $ubuntuSession -Command $Command -Timeout 60 -WarningAction SilentlyContinue).Output
 
 # Onboarding nested CentOS server VM
-$SessionID = New-SSHSession -ComputerName $CentOSVmIp -Credential $linCredObject -Force -WarningAction SilentlyContinue
+$centosSession = New-SSHSession -ComputerName $CentOSVmIp -Credential $linCredObject -Force -WarningAction SilentlyContinue
 $Command = "sudo sh /tmp/installArcAgentCentOS.sh"
-Invoke-SSHCommand -Index $sessionid.sessionid -Command $Command -TimeOut 60 -WarningAction SilentlyContinue | Out-Null
+$(Invoke-SSHCommand -SSHSession $centosSession -Command $Command -TimeOut 60 -WarningAction SilentlyContinue).Output
 
 # Creating Hyper-V Manager desktop shortcut
 Copy-Item -Path "C:\ProgramData\Microsoft\Windows\Start Menu\Programs\Administrative Tools\Hyper-V Manager.lnk" -Destination "C:\Users\All Users\Desktop" -Force
