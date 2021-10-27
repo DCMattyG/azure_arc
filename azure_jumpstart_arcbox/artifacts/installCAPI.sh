@@ -81,6 +81,7 @@ export AZURE_CLUSTER_IDENTITY_SECRET_NAMESPACE="default"
 sudo mkdir ~/.kube
 sudo -u $adminUsername mkdir /home/${adminUsername}/.kube
 curl -sLS https://get.k3sup.dev | sh
+sudo cp k3sup /usr/local/bin/k3sup
 sudo k3sup install --local --context arcboxcapimgmt --k3s-extra-args '--no-deploy traefik'
 sudo chmod 644 /etc/rancher/k3s/k3s.yaml
 sudo cp kubeconfig ~/.kube/config

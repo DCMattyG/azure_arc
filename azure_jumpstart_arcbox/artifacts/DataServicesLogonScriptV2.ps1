@@ -230,7 +230,7 @@ $Favorite.Save()
 # Changing to Jumpstart ArcBox wallpaper
 $wallpaperPath = "${scriptDir}\wallpaper.png"
 
-& "${scriptDir}\changeWallpaper.ps1 -Image ${wallpaperPath}"
+& ${scriptDir}\changeWallpaper.ps1 -Image $wallpaperPath
 
 # Kill the open PowerShell monitoring kubectl get pods
 Stop-Process -Id $kubectlMonShell.Id
