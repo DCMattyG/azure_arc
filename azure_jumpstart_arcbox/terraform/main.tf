@@ -38,6 +38,12 @@ variable "capi_vm_name" {
   default     = "ArcBox-CAPI-MGMT"
 }
 
+variable "rancher_vm_name" {
+  type        = string
+  description = "The name of the client virtual machine."
+  default     = "ArcBox-K3s"
+}
+
 variable "virtual_network_name" {
   type        = string
   description = "ArcBox vNET name."
@@ -198,6 +204,27 @@ module "capi_vm" {
   spn_tenant_id        = var.spn_tenant_id
   admin_username       = var.client_admin_username
   admin_ssh_key        = var.client_admin_ssh
+
+  depends_on = [azurerm_resource_group.rg, module.management_storage]
+}
+
+module "rancher_vm" {
+  source = "./modules/ubuntuRancher"
+  count  = contains(["Full", "Developer"], var.deployment_flavor) ? 1 : 0
+
+  resource_group_name  = azurerm_resource_group.rg.name
+  vm_name              = var.rancher_vm_name
+  virtual_network_name = var.virtual_network_name
+  subnet_name          = var.subnet_name
+  user_ip_address      = var.user_ip_address
+  template_base_url    = local.template_base_url
+  storage_account_name = module.management_storage.storage_account_name
+  spn_client_id        = var.spn_client_id
+  spn_client_secret    = var.spn_client_secret
+  spn_tenant_id        = var.spn_tenant_id
+  admin_username       = var.client_admin_username
+  admin_ssh_key        = var.client_admin_ssh
+  workspace_name       = var.workspace_name
 
   depends_on = [azurerm_resource_group.rg, module.management_storage]
 }

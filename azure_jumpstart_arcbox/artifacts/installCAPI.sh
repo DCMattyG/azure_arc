@@ -2,39 +2,61 @@
 exec >installCAPI.log
 exec 2>&1
 
+ARGUMENT_LIST=(
+    "USER_NAME"
+    "VM_NAME"
+    "LOCATION"
+    "STAGING_STORAGE"
+    "SPN_CLIENT_ID"
+    "SPN_CLIENT_SECRET"
+    "SPN_TENANT_ID"
+)
+
+# Read options from argument list
+OPTS=$(getopt --options '' --long "$(printf "%s:," "${ARGUMENT_LIST[@]}")" --name "$0" -- "$@")
+
+if [ $? != 0 ] ; then echo "Failed to parse options...exiting." >&2 ; exit 1 ; fi
+
+eval set -- "$OPTS"
+
+# Map options and their arguments into variables
+while true; do
+  case "$1" in
+    --USER_NAME)          USER_NAME=$2;           shift 2 ;;
+    --VM_NAME)            VM_NAME=$2;             shift 2 ;;
+    --LOCATION)           LOCATION=$2;            shift 2 ;;
+    --STAGING_STORAGE)    STAGING_STORAGE=$2;     shift 2 ;;
+    --SPN_CLIENT_ID)      SPN_CLIENT_ID=$2;       shift 2 ;;
+    --SPN_CLIENT_SECRET)  SPN_CLIENT_SECRET=$2;   shift 2 ;;
+    --SPN_TENANT_ID)      SPN_TENANT_ID=$2;       shift 2 ;;
+    --)                   shift;                  break ;;
+    *)                    break ;;
+  esac
+done
+
+# Check for any missing required options
+for i in "${ARGUMENT_LIST[@]}"
+do
+  if [ -z ${!i} ]
+    then
+      echo "Missing argument $i"
+      exit 1
+  fi
+done
+
 sudo apt-get update
 
 sudo sed -i "s/PasswordAuthentication no/PasswordAuthentication yes/" /etc/ssh/sshd_config
 sudo adduser staginguser --gecos "First Last,RoomNumber,WorkPhone,HomePhone" --disabled-password
 sudo echo "staginguser:ArcPassw0rd" | sudo chpasswd
 
-# Injecting environment variables
-echo '#!/bin/bash' >> vars.sh
-echo $adminUsername:$1 | awk '{print substr($1,2); }' >> vars.sh
-echo $SPN_CLIENT_ID:$2 | awk '{print substr($1,2); }' >> vars.sh
-echo $SPN_CLIENT_SECRET:$3 | awk '{print substr($1,2); }' >> vars.sh
-echo $SPN_TENANT_ID:$4 | awk '{print substr($1,2); }' >> vars.sh
-echo $vmName:$5 | awk '{print substr($1,2); }' >> vars.sh
-echo $location:$6 | awk '{print substr($1,2); }' >> vars.sh
-echo $stagingStorageAccountName:$7 | awk '{print substr($1,2); }' >> vars.sh
-sed -i '2s/^/export adminUsername=/' vars.sh
-sed -i '3s/^/export SPN_CLIENT_ID=/' vars.sh
-sed -i '4s/^/export SPN_CLIENT_SECRET=/' vars.sh
-sed -i '5s/^/export SPN_TENANT_ID=/' vars.sh
-sed -i '6s/^/export vmName=/' vars.sh
-sed -i '7s/^/export location=/' vars.sh
-sed -i '8s/^/export stagingStorageAccountName=/' vars.sh
-
-chmod +x vars.sh 
-. ./vars.sh
-
 # Installing Azure CLI
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
 echo "Log in to Azure"
-sudo -u $adminUsername az login --service-principal --username $SPN_CLIENT_ID --password $SPN_CLIENT_SECRET --tenant $SPN_TENANT_ID
-subscriptionId=$(sudo -u $adminUsername az account show --query id --output tsv)
-resourceGroup=$(sudo -u $adminUsername az resource list --query "[?name=='$stagingStorageAccountName']".[resourceGroup] --resource-type "Microsoft.Storage/storageAccounts" -o tsv)
+sudo -u $USER_NAME az login --service-principal --username $SPN_CLIENT_ID --password $SPN_CLIENT_SECRET --tenant $SPN_TENANT_ID
+subscriptionId=$(sudo -u $USER_NAME az account show --query id --output tsv)
+resourceGroup=$(sudo -u $USER_NAME az resource list --query "[?name=='$STAGING_STORAGE']".[resourceGroup] --resource-type "Microsoft.Storage/storageAccounts" -o tsv)
 az -v
 echo ""
 
@@ -44,7 +66,7 @@ sudo apt install snapd
 # Installing Docker
 sudo snap install docker
 sudo groupadd docker
-sudo usermod -aG docker $adminUsername
+sudo usermod -aG docker $USER_NAME
 
 # Installing kubectl
 sudo snap install kubectl --classic
@@ -57,7 +79,7 @@ export AZURE_ENVIRONMENT="AzurePublicCloud" # Do not change!
 export KUBERNETES_VERSION="1.20.10" # Do not change!
 export CONTROL_PLANE_MACHINE_COUNT="1"
 export WORKER_MACHINE_COUNT="3"
-export AZURE_LOCATION=$location # Name of the Azure datacenter location.
+export AZURE_LOCATION=$LOCATION # Name of the Azure datacenter location.
 export CAPI_WORKLOAD_CLUSTER_NAME="arcbox-capi-data" # Name of the CAPI workload cluster. Must consist of lower case alphanumeric characters, '-' or '.', and must start and end with an alphanumeric character (e.g. 'example.com', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*')
 export AZURE_SUBSCRIPTION_ID=$subscriptionId
 export AZURE_TENANT_ID=$SPN_TENANT_ID
@@ -79,18 +101,18 @@ export AZURE_CLUSTER_IDENTITY_SECRET_NAMESPACE="default"
 
 # Installing Rancher K3s single node cluster using k3sup
 sudo mkdir ~/.kube
-sudo -u $adminUsername mkdir /home/${adminUsername}/.kube
+sudo -u $USER_NAME mkdir /home/${USER_NAME}/.kube
 curl -sLS https://get.k3sup.dev | sh
 sudo cp k3sup /usr/local/bin/k3sup
 sudo k3sup install --local --context arcboxcapimgmt --k3s-extra-args '--no-deploy traefik'
 sudo chmod 644 /etc/rancher/k3s/k3s.yaml
 sudo cp kubeconfig ~/.kube/config
-sudo cp kubeconfig /home/${adminUsername}/.kube/config
-sudo cp kubeconfig /home/${adminUsername}/.kube/config.staging
-chown -R $adminUsername /home/${adminUsername}/.kube/
-chown -R staginguser /home/${adminUsername}/.kube/config.staging
+sudo cp kubeconfig /home/${USER_NAME}/.kube/config
+sudo cp kubeconfig /home/${USER_NAME}/.kube/config.staging
+sudo chown -R $USER_NAME /home/${USER_NAME}/.kube/
+sudo chown -R staginguser /home/${USER_NAME}/.kube/config.staging
 
-export KUBECONFIG=/var/lib/waagent/custom-script/download/0/kubeconfig
+export KUBECONFIG=$(dirname ${BASH_SOURCE[0]})/config
 kubectl config set-context arcboxcapimgmt
 kubectl get node -o wide
 
@@ -222,17 +244,17 @@ sudo kubectl --kubeconfig=./$CAPI_WORKLOAD_CLUSTER_NAME.kubeconfig get nodes
 echo ""
 
 # CAPI workload cluster kubeconfig housekeeping
-cp /var/lib/waagent/custom-script/download/0/$CAPI_WORKLOAD_CLUSTER_NAME.kubeconfig ~/.kube/config.$CAPI_WORKLOAD_CLUSTER_NAME
-cp /var/lib/waagent/custom-script/download/0/$CAPI_WORKLOAD_CLUSTER_NAME.kubeconfig /home/${adminUsername}/.kube/config.$CAPI_WORKLOAD_CLUSTER_NAME
+cp $(dirname ${BASH_SOURCE[0]})/$CAPI_WORKLOAD_CLUSTER_NAME.kubeconfig ~/.kube/config.$CAPI_WORKLOAD_CLUSTER_NAME
+cp $(dirname ${BASH_SOURCE[0]})/$CAPI_WORKLOAD_CLUSTER_NAME.kubeconfig /home/${USER_NAME}/.kube/config.$CAPI_WORKLOAD_CLUSTER_NAME
 export KUBECONFIG=~/.kube/config.arcbox-capi-data
 
 sudo service sshd restart
 
 # Copying workload CAPI kubeconfig file to staging storage account
-sudo -u $adminUsername az extension add --upgrade -n storage-preview
-storageAccountRG=$(sudo -u $adminUsername az storage account show --name $stagingStorageAccountName --query 'resourceGroup' | sed -e 's/^"//' -e 's/"$//')
+sudo -u $USER_NAME az extension add --upgrade -n storage-preview
+storageAccountRG=$(sudo -u $USER_NAME az storage account show --name $STAGING_STORAGE --query 'resourceGroup' | sed -e 's/^"//' -e 's/"$//')
 storageContainerName="staging-capi"
-localPath="/home/${adminUsername}/.kube/config.$CAPI_WORKLOAD_CLUSTER_NAME"
-storageAccountKey=$(sudo -u $adminUsername az storage account keys list --resource-group $storageAccountRG --account-name $stagingStorageAccountName --query [0].value | sed -e 's/^"//' -e 's/"$//')
-sudo -u $adminUsername az storage container create -n $storageContainerName --account-name $stagingStorageAccountName --account-key $storageAccountKey
-sudo -u $adminUsername az storage azcopy blob upload --container $storageContainerName --account-name $stagingStorageAccountName --account-key $storageAccountKey --source $localPath
+localPath="/home/${USER_NAME}/.kube/config.$CAPI_WORKLOAD_CLUSTER_NAME"
+storageAccountKey=$(sudo -u $USER_NAME az storage account keys list --resource-group $storageAccountRG --account-name $STAGING_STORAGE --query [0].value | sed -e 's/^"//' -e 's/"$//')
+sudo -u $USER_NAME az storage container create -n $storageContainerName --account-name $STAGING_STORAGE --account-key $storageAccountKey
+sudo -u $USER_NAME az storage azcopy blob upload --container $storageContainerName --account-name $STAGING_STORAGE --account-key $storageAccountKey --source $localPath
