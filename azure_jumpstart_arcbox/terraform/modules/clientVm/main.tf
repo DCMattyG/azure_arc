@@ -249,20 +249,20 @@ resource "azurerm_virtual_machine" "client" {
   }
 }
 
-# resource "azurerm_virtual_machine_extension" "custom_script" {
-#   name                       = var.vm_name
-#   virtual_machine_id         = azurerm_virtual_machine.client.id
-#   publisher                  = "Microsoft.Compute"
-#   type                       = "CustomScriptExtension"
-#   type_handler_version       = "1.10"
-#   auto_upgrade_minor_version = true
+resource "azurerm_virtual_machine_extension" "custom_script" {
+  name                       = var.vm_name
+  virtual_machine_id         = azurerm_virtual_machine.client.id
+  publisher                  = "Microsoft.Compute"
+  type                       = "CustomScriptExtension"
+  type_handler_version       = "1.10"
+  auto_upgrade_minor_version = true
 
-#   settings = <<SETTINGS
-#     {
-#       "fileUris": [
-#           "${var.template_base_url}artifacts/Bootstrap.ps1"
-#       ],
-#       "commandToExecute": "powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername ${var.admin_username} -spnClientId ${var.spn_client_id} -spnClientSecret ${var.spn_client_secret} -spnTenantId ${var.spn_tenant_id} -subscriptionId ${data.azurerm_subscription.primary.subscription_id} -resourceGroup ${data.azurerm_resource_group.rg.name} -azdataUsername ${var.data_controller_username} -azdataPassword ${var.data_controller_password} -acceptEula ${var.accept_eula} -arcDcName ${var.data_controller_name} -azureLocation ${data.azurerm_resource_group.rg.location} -mssqlmiName ${var.sql_mi_name} -POSTGRES_NAME ${var.postgres_name} -POSTGRES_WORKER_NODE_COUNT ${var.postgres_worker_node_count} -POSTGRES_DATASIZE ${var.postgres_data_size} -POSTGRES_SERVICE_TYPE ${var.postgres_service_type} -stagingStorageAccountName ${var.storage_account_name} -workspaceName ${var.workspace_name} -templateBaseUrl ${var.template_base_url} -flavor ${var.deployment_flavor} -automationTriggerAtLogon ${var.trigger_at_logon} --githubRepo ${var.github_repo} --githubBranch ${var.github_branch}"
-#     }
-# SETTINGS
-# }
+  settings = <<SETTINGS
+    {
+      "fileUris": [
+          "${var.template_base_url}artifacts/Bootstrap.ps1"
+      ],
+      "commandToExecute": "powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -adminUsername ${var.admin_username} -spnClientId ${var.spn_client_id} -spnClientSecret ${var.spn_client_secret} -spnTenantId ${var.spn_tenant_id} -subscriptionId ${data.azurerm_subscription.primary.subscription_id} -resourceGroup ${data.azurerm_resource_group.rg.name} -azdataUsername ${var.data_controller_username} -azdataPassword ${var.data_controller_password} -acceptEula ${var.accept_eula} -arcDcName ${var.data_controller_name} -azureLocation ${data.azurerm_resource_group.rg.location} -mssqlmiName ${var.sql_mi_name} -POSTGRES_NAME ${var.postgres_name} -POSTGRES_WORKER_NODE_COUNT ${var.postgres_worker_node_count} -POSTGRES_DATASIZE ${var.postgres_data_size} -POSTGRES_SERVICE_TYPE ${var.postgres_service_type} -stagingStorageAccountName ${var.storage_account_name} -workspaceName ${var.workspace_name} -templateBaseUrl ${var.template_base_url} -flavor ${var.deployment_flavor} -automationTriggerAtLogon ${var.trigger_at_logon} --githubRepo ${var.github_repo} --githubBranch ${var.github_branch}"
+    }
+SETTINGS
+}

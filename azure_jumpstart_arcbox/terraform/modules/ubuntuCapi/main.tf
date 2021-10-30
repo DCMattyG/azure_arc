@@ -77,27 +77,27 @@ locals {
     network_interface_name = "${var.vm_name}-NIC"
 }
 
-data "template_cloudinit_config" "custom_data" {
-  gzip          = true
-  base64_encode = true
+# data "template_cloudinit_config" "custom_data" {
+#   gzip          = true
+#   base64_encode = true
 
-  part {
-    content = <<EOF
-#cloud-config
----
-apt_update: true
-packages:
- - python3-pip
-runcmd:
- - [ python3, -m, pip, install, --upgrade, pip ]
- - [ python3, -m, pip, install, --upgrade, pillow ]
- - [ pip3, install, rust ]
- - [ pip3, install, azure-mgmt-resource ]
- - [ pip3, install, azure-mgmt-storage ]
- - [ pip3, install, azure-identity ]
-EOF
-  }
-}
+#   part {
+#     content = <<EOF
+# #cloud-config
+# ---
+# apt_update: true
+# packages:
+#  - python3-pip
+# runcmd:
+#  - [ python3, -m, pip, install, --upgrade, pip ]
+#  - [ python3, -m, pip, install, --upgrade, pillow ]
+#  - [ pip3, install, rust ]
+#  - [ pip3, install, azure-mgmt-resource ]
+#  - [ pip3, install, azure-mgmt-storage ]
+#  - [ pip3, install, azure-identity ]
+# EOF
+#   }
+# }
 
 data "azurerm_subscription" "primary" {
 }
@@ -178,7 +178,7 @@ resource "azurerm_virtual_machine" "client" {
     computer_name  = var.vm_name
     admin_username = var.admin_username
     admin_password = "ArcPassword123!!"
-    custom_data    = data.template_cloudinit_config.custom_data.rendered
+    # custom_data    = data.template_cloudinit_config.custom_data.rendered
   }
 
   os_profile_linux_config {
@@ -190,20 +190,20 @@ resource "azurerm_virtual_machine" "client" {
   }
 }
 
-# resource "azurerm_virtual_machine_extension" "custom_script" {
-#   name                       = var.vm_name
-#   virtual_machine_id         = azurerm_virtual_machine.client.id
-#   publisher                  = "Microsoft.Azure.Extensions"
-#   type                       = "CustomScript"
-#   type_handler_version       = "2.0"
-#   auto_upgrade_minor_version = true
+resource "azurerm_virtual_machine_extension" "custom_script" {
+  name                       = var.vm_name
+  virtual_machine_id         = azurerm_virtual_machine.client.id
+  publisher                  = "Microsoft.Azure.Extensions"
+  type                       = "CustomScript"
+  type_handler_version       = "2.0"
+  auto_upgrade_minor_version = true
 
-#   protected_settings = <<PROTECTED_SETTINGS
-#     {
-#       "fileUris": [
-#           "${var.template_base_url}artifacts/installCAPI.sh"
-#       ],
-#       "commandToExecute": "bash installCAPI.sh ${var.admin_username} ${var.spn_client_id} ${var.spn_client_secret} ${var.spn_tenant_id} ${var.vm_name} ${data.azurerm_resource_group.rg.location} ${var.storage_account_name}"
-#     }
-# PROTECTED_SETTINGS
-# }
+  protected_settings = <<PROTECTED_SETTINGS
+    {
+      "fileUris": [
+          "${var.template_base_url}artifacts/installCAPI.sh"
+      ],
+      "commandToExecute": "bash installCAPI.sh --USER_NAME ${var.admin_username} --SPN_CLIENT_ID ${var.spn_client_id} --SPN_CLIENT_SECRET ${var.spn_client_secret} --SPN_TENANT_ID ${var.spn_tenant_id} --VM_NAME ${var.vm_name} --LOCATION ${data.azurerm_resource_group.rg.location} --STAGING_STORAGE ${var.storage_account_name}"
+    }
+PROTECTED_SETTINGS
+}

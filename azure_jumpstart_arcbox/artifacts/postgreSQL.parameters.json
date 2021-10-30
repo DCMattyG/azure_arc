@@ -65,7 +65,7 @@
             }
         },
         "numWorkers": {
-            "value": numWorkersStage
+            "value": "numWorkersStage"
         },
         "extensions": {
             "value": [

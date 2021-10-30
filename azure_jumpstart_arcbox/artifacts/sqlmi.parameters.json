@@ -60,7 +60,7 @@
             "value": "backupsSize-stage"
         },
         "replicas": {
-            "value": replicasStage
+            "value": "replicasStage"
         },
         "resourceTags": {
             "value": {

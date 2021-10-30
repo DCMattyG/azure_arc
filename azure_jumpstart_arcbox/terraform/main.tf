@@ -162,7 +162,7 @@ module "management_policy" {
   workspace_name      = var.workspace_name
   workspace_id        = module.management_artifacts.workspace_id
 
-  depends_on = [azurerm_resource_group.rg, module.management_artifacts]
+  depends_on = [azurerm_resource_group.rg]
 }
 
 module "client_vm" {
@@ -185,7 +185,11 @@ module "client_vm" {
   github_repo          = var.github_repo
   github_branch        = var.github_branch
 
-  depends_on = [azurerm_resource_group.rg, module.management_storage]
+  depends_on = [
+    azurerm_resource_group.rg,
+    module.management_artifacts,
+    module.rancher_vm
+  ]
 }
 
 module "capi_vm" {
@@ -205,7 +209,7 @@ module "capi_vm" {
   admin_username       = var.client_admin_username
   admin_ssh_key        = var.client_admin_ssh
 
-  depends_on = [azurerm_resource_group.rg, module.management_storage]
+  depends_on = [azurerm_resource_group.rg]
 }
 
 module "rancher_vm" {
@@ -226,5 +230,5 @@ module "rancher_vm" {
   admin_ssh_key        = var.client_admin_ssh
   workspace_name       = var.workspace_name
 
-  depends_on = [azurerm_resource_group.rg, module.management_storage]
+  depends_on = [azurerm_resource_group.rg]
 }

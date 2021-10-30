@@ -1,7 +1,49 @@
+param (
+    [string]$adminUsername,
+    [string]$spnClientId,
+    [string]$spnClientSecret,
+    [string]$spnTenantId,
+    [string]$resourceGroup,
+    [string]$subscriptionId,
+    [string]$azdataUsername,
+    [string]$azdataPassword
+)
+
+$ErrorActionPreference = 'SilentlyContinue'
+
+function Format-Json {
+    param(
+        [Parameter(Mandatory,ValueFromPipeline)]
+        [object]$jsonObject
+    )
+
+    $newtonJson = [Newtonsoft.Json.JsonConvert]::DeserializeObject($(ConvertTo-Json $jsonObject -Depth 8))
+    $outputJson = [Newtonsoft.Json.JsonConvert]::SerializeObject($newtonJson, [Newtonsoft.Json.Formatting]::Indented)
+
+    return $outputJson
+}
+
+# Set ArcBox paths
+$scriptDir = "C:\ArcBox\Scripts"
+$logDir = "C:\ArcBox\Logs"
+
 Start-Transcript -Path C:\ArcBox\deployPostgreSQL.log
 
 # Deployment environment variables
 $controllerName = "arcbox-dc" # This value needs to match the value of the data controller name as set by the ARM template deployment.
+
+# Create Service Principal credential object
+$secPassword = ConvertTo-SecureString $spnClientSecret -AsPlainText -Force
+$credObject = New-Object System.Management.Automation.PSCredential($spnClientId, $secPassword)
+
+# Azure PowerShell login with Serivce Principal
+Write-Output "Logging into Azure PowerShell..."
+Connect-AzAccount -ServicePrincipal -SubscriptionId $subscriptionId -TenantId $spnTenantId -Credential $credObject
+Set-AzContext -Subscription $subscriptionId
+
+# Required for CLI commands
+Write-Output "Logging into Azure CLI..."
+az login --service-principal --username $spnClientId --password $spnClientSecret --tenant $spnTenantId
 
 # Deploying Azure Arc PostgreSQL Hyperscale
 Write-Host "Deploying Azure Arc PostgreSQL Hyperscale"
@@ -22,7 +64,7 @@ $coordinatorCoresLimit = "4"
 $coordinatorMemoryLimit = "8Gi"
 
 # Storage
-$StorageClassName = "managed-premium"
+$storageClassName = "managed-premium"
 $dataStorageSize = "5Gi"
 $logsStorageSize = "5Gi"
 $backupsStorageSize = "5Gi"
@@ -31,45 +73,66 @@ $backupsStorageSize = "5Gi"
 $numWorkers = 1
 ################################################
 
-$PSQLParams = "C:\ArcBox\postgreSQL.parameters.json"
+$replaceParams = @{
+    'resourceGroup'            = $resourceGroup
+    'dataControllerId'         = $dataControllerId
+    'customLocation'           = $customLocationId
+    'subscriptionId'           = $subscriptionId
+    'admin'                    = $azdataUsername
+    'password'                 = $azdataPassword
+    'serviceType'              = $serviceType
+    'coordinatorCoresRequest'  = $coordinatorCoresRequest
+    'coordinatorCoresLimit'    = $coordinatorCoresLimit
+    'coordinatorMemoryRequest' = $coordinatorMemoryRequest
+    'coordinatorMemoryLimit'   = $coordinatorMemoryLimit
+    'dataStorageSize'          = $dataStorageSize
+    'dataStorageClassName'     = $storageClassName
+    'logsStorageSize'          = $logsStorageSize
+    'logsStorageClassName'     = $storageClassName
+    'backupsStorageSize'       = $backupsStorageSize
+    'backupsStorageClassName'  = $storageClassName
+    'numWorkers'               = $numWorkers
+}
 
-(Get-Content -Path $PSQLParams) -replace 'resourceGroup-stage',$env:resourceGroup | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'dataControllerId-stage',$dataControllerId | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'customLocation-stage',$customLocationId | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'subscriptionId-stage',$env:subscriptionId | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'azdataPassword-stage',$env:AZDATA_PASSWORD | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'serviceType-stage',$ServiceType | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'coordinatorCoresRequest-stage',$coordinatorCoresRequest | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'coordinatorMemoryRequest-stage',$coordinatorMemoryRequest | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'coordinatorCoresLimit-stage',$coordinatorCoresLimit | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'coordinatorMemoryLimit-stage',$coordinatorMemoryLimit | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'dataStorageClassName-stage',$StorageClassName | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'logsStorageClassName-stage',$StorageClassName | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'backupStorageClassName-stage',$StorageClassName | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'dataSize-stage',$dataStorageSize | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'logsSize-stage',$logsStorageSize | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'backupsSize-stage',$backupsStorageSize | Set-Content -Path $PSQLParams
-(Get-Content -Path $PSQLParams) -replace 'numWorkersStage',$numWorkers | Set-Content -Path $PSQLParams
+Write-Host "Updating Data Controller ARM template parameters..."
+$pSQL = "${scriptDir}\postgreSQL.json"
+$pSQLParams = "${scriptDir}\postgreSQL.parameters.json"
+$pSQLParamsJson = $(Get-Content -Path $pSQLParams -Raw) | ConvertFrom-Json
 
-az deployment group create --resource-group $env:resourceGroup --template-file "C:\ArcBox\postgreSQL.json" --parameters "C:\ArcBox\postgreSQL.parameters.json"
-Write-Host "`n"
+foreach ($param in $replaceParams.GetEnumerator()) {
+    $pSQLParamsJson.parameters.$($param.Name).value = $param.Value
+}
+
+$pSQLParamsJson | Format-Json | Set-Content -Path $pSQLParams
+
+Write-Host "Deploying SQLMI ARM template..."
+New-AzResourceGroupDeployment -ResourceGroupName $resourceGroup -TemplateFile $pSQL -TemplateParameterFile $pSQLParams
 
 # Ensures postgres container is initiated and ready to accept restores
 $pgControllerPodName = "jumpstartpsc0-0"
 $pgWorkerPodName = "jumpstartpsw0-0"
 
-    Do {
-        Write-Host "Waiting for PostgreSQL Hyperscale. Hold tight, this might take a few minutes..."
-        Start-Sleep -Seconds 45
-        $buildService = $(if((kubectl get pods -n arc | Select-String $pgControllerPodName| Select-String "Running" -Quiet) -and (kubectl get pods -n arc | Select-String $pgWorkerPodName| Select-String "Running" -Quiet)){"Ready!"}Else{"Nope"})
-    } while ($buildService -eq "Nope")
+do {
+    Write-Host "Waiting for PostgreSQL Hyperscale. Hold tight, this might take a few minutes..."
+    Start-Sleep -Seconds 45
+    $buildService = $(if((kubectl get pods -n arc | Select-String $pgControllerPodName| Select-String "Running" -Quiet) -and (kubectl get pods -n arc | Select-String $pgWorkerPodName| Select-String "Running" -Quiet)){"Ready!"}Else{"Nope"})
+} while ($buildService -eq "Nope")
 
 Start-Sleep -Seconds 60
 
 # Update Service Port from 5432 to Non-Standard
-$payload = '{\"spec\":{\"ports\":[{\"name\":\"port-pgsql\",\"port\":15432,\"targetPort\":5432}]}}'
-kubectl patch svc jumpstartps-external-svc -n arc --type merge --patch $payload
-Sleep 5 # To allow the CRD to update
+$payload = @{
+    spec = @{
+        ports = @{
+                name       = "port-pgsql"
+                port       = 15432
+                targetPort = 5432
+        }
+    }
+}
+
+kubectl patch svc jumpstartps-external-svc -n arc --type merge --patch $($payload | ConvertTo-Json)
+Start-Sleep -Seconds 5 # To allow the CRD to update
 
 # Downloading demo database and restoring onto Postgres
 Write-Host "Downloading AdventureWorks.sql template for Postgres... (1/3)"
@@ -81,12 +144,17 @@ kubectl exec $pgControllerPodName -n arc -c postgres -- psql -U postgres -d adve
 
 # Creating Azure Data Studio settings for PostgreSQL connection
 Write-Host ""
-Write-Host "Creating Azure Data Studio settings for PostgreSQL connection"
-$settingsTemplate = "C:\ArcBox\settingsTemplate.json"
+Write-Host "Creating Azure Data Studio settings for PostgreSQL connection..."
+$settingsTemplate = "${scriptDir}\settingsTemplate.json"
 # Retrieving PostgreSQL connection endpoint
 $pgsqlstring = kubectl get postgresql jumpstartps -n arc -o=jsonpath='{.status.primaryEndpoint}'
 
 # Replace placeholder values in settingsTemplate.json
-(Get-Content -Path $settingsTemplate) -replace 'arc_postgres_host',$pgsqlstring.split(":")[0] | Set-Content -Path $settingsTemplate
-(Get-Content -Path $settingsTemplate) -replace 'arc_postgres_port',$pgsqlstring.split(":")[1] | Set-Content -Path $settingsTemplate
-(Get-Content -Path $settingsTemplate) -replace 'ps_password',$env:AZDATA_PASSWORD | Set-Content -Path $settingsTemplate
+Write-Host "Updating Settings template..."
+$settingsTemplate = "${scriptDir}\settingsTemplate.json"
+$settingsJson = $(Get-Content -Path $settingsTemplate -Raw) | ConvertFrom-Json
+$settingsJson.'datasource.connections'[1].options.hostaddr = $pgsqlstring.split(":")[0]
+$settingsJson.'datasource.connections'[0].options.port = $pgsqlstring.split(":")[1]
+$settingsJson.'datasource.connections'[0].options.password = $azdataPassword
+# (Get-Content -Path $settingsTemplate) -replace 'false','true' | Set-Content -Path $settingsTemplate
+$settingsJson | Format-Json | Set-Content -Path $settingsTemplate
