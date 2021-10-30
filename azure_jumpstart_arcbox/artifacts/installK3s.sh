@@ -46,8 +46,10 @@ do
   fi
 done
 
+echo "Updating apt repositories..."
 sudo apt-get update
 
+echo "Creating staging user..."
 sudo sed -i "s/PasswordAuthentication no/PasswordAuthentication yes/" /etc/ssh/sshd_config
 sudo adduser staginguser --gecos "First Last,RoomNumber,WorkPhone,HomePhone" --disabled-password
 sudo echo "staginguser:ArcPassw0rd" | sudo chpasswd
@@ -55,6 +57,7 @@ sudo echo "staginguser:ArcPassw0rd" | sudo chpasswd
 publicIp=$(curl icanhazip.com)
 
 # Installing Rancher K3s single master cluster using k3sup
+echo "Installing K3s..."
 sudo -u $USER_NAME mkdir /home/${USER_NAME}/.kube
 curl -sLS https://get.k3sup.dev | sh
 sudo cp k3sup /usr/local/bin/k3sup
@@ -66,19 +69,24 @@ sudo chown -R $USER_NAME /home/${USER_NAME}/.kube/
 sudo chown -R staginguser /home/${USER_NAME}/.kube/config.staging
 
 # Installing Helm 3
+echo "Installing Helm..."
 sudo snap install helm --channel=3.6/stable --classic # pinning 3.6 due to breaking changes in aak8s onboarding with 3.7
 
 # Installing Azure CLI & Azure Arc Extensions
+echo "Installing Azure CLI..."
 sudo apt-get update
 curl -sL https://aka.ms/InstallAzureCLIDeb | sudo bash
 
+echo "Adding Azure CLI extensions..."
 sudo -u $USER_NAME az extension add --name connectedk8s
 sudo -u $USER_NAME az extension add --name k8s-configuration
 sudo -u $USER_NAME az extension add --name k8s-extension
 
+echo "Logging into Azure CLI..."
 sudo -u $USER_NAME az login --service-principal --username $SPN_CLIENT_ID --password $SPN_CLIENT_SECRET --tenant $SPN_TENANT_ID
 
 # Onboard the cluster to Azure Arc and enabling Container Insights using Kubernetes extension
+echo "Onboarding cluster to Azure Arc..."
 resourceGroup=$(sudo -u $USER_NAME az resource list --query "[?name=='$STAGING_STORAGE']".[resourceGroup] --resource-type "Microsoft.Storage/storageAccounts" -o tsv)
 workspaceResourceId=$(sudo -u $USER_NAME az resource show --resource-group $resourceGroup --name $WORKSPACE --resource-type "Microsoft.OperationalInsights/workspaces" --query id -o tsv)
 sudo -u $USER_NAME az connectedk8s connect --name $VM_NAME --resource-group $resourceGroup --location $LOCATION --tags 'Project=jumpstart_arcbox'
@@ -87,6 +95,7 @@ sudo -u $USER_NAME az k8s-extension create -n "azuremonitor-containers" --cluste
 sudo service sshd restart
 
 # Copying Rancher K3s kubeconfig file to staging storage account
+echo "Uploading K3s kubeconfig to storage account..."
 sudo -u $USER_NAME az extension add --upgrade -n storage-preview
 storageAccountRG=$(sudo -u $USER_NAME az storage account show --name $STAGING_STORAGE --query 'resourceGroup' | sed -e 's/^"//' -e 's/"$//')
 storageContainerName="staging-k3s"

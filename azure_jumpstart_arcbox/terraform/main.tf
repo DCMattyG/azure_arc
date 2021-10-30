@@ -188,6 +188,7 @@ module "client_vm" {
   depends_on = [
     azurerm_resource_group.rg,
     module.management_artifacts,
+    module.capi_vm,
     module.rancher_vm
   ]
 }
@@ -209,7 +210,10 @@ module "capi_vm" {
   admin_username       = var.client_admin_username
   admin_ssh_key        = var.client_admin_ssh
 
-  depends_on = [azurerm_resource_group.rg]
+  depends_on = [
+    azurerm_resource_group.rg,
+    module.management_artifacts
+  ]
 }
 
 module "rancher_vm" {
@@ -230,5 +234,8 @@ module "rancher_vm" {
   admin_ssh_key        = var.client_admin_ssh
   workspace_name       = var.workspace_name
 
-  depends_on = [azurerm_resource_group.rg]
+  depends_on = [
+    azurerm_resource_group.rg,
+    module.management_artifacts
+  ]
 }

@@ -112,7 +112,7 @@ sudo cp kubeconfig /home/${USER_NAME}/.kube/config.staging
 sudo chown -R $USER_NAME /home/${USER_NAME}/.kube/
 sudo chown -R staginguser /home/${USER_NAME}/.kube/config.staging
 
-export KUBECONFIG=$(dirname ${BASH_SOURCE[0]})/config
+export KUBECONFIG=$(dirname ${BASH_SOURCE[0]})/kubeconfig
 kubectl config set-context arcboxcapimgmt
 kubectl get node -o wide
 
