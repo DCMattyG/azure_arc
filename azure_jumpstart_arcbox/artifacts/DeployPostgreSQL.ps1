@@ -105,7 +105,7 @@ foreach ($param in $replaceParams.GetEnumerator()) {
 
 $pSQLParamsJson | Format-Json | Set-Content -Path $pSQLParams
 
-Write-Host "Deploying SQLMI ARM template..."
+Write-Host "Deploying PostgreSQL ARM template..."
 New-AzResourceGroupDeployment -ResourceGroupName $resourceGroup -TemplateFile $pSQL -TemplateParameterFile $pSQLParams
 
 # Ensures postgres container is initiated and ready to accept restores
@@ -114,7 +114,7 @@ $pgWorkerPodName = "jumpstartpsw0-0"
 
 do {
     Write-Host "Waiting for PostgreSQL Hyperscale. Hold tight, this might take a few minutes..."
-    Start-Sleep -Seconds 45
+    Start-Sleep -Seconds 30
     $buildService = $((kubectl get pods -n arc | Select-String $pgControllerPodName | Select-String "Running" -Quiet) -and (kubectl get pods -n arc | Select-String $pgWorkerPodName | Select-String "Running" -Quiet))
 } while (-not $buildService)
 
@@ -133,7 +133,7 @@ $payload = @{
     }
 }
 
-kubectl patch svc jumpstartps-external-svc -n arc --type merge --patch $($payload | ConvertTo-Json -Depth 4 -Compress)
+kubectl patch svc jumpstartps-external-svc -n arc --type merge --patch $($payload | ConvertTo-Json -Depth 4 -Compress).Replace('"', '\"')
 Start-Sleep -Seconds 5 # To allow the CRD to update
 
 # Downloading demo database and restoring onto Postgres

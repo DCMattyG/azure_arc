@@ -116,7 +116,7 @@ Write-Host "`n"
 
 do {
     Write-Host "Waiting for SQL Managed Instance. Hold tight, this might take a few minutes..."
-    Start-Sleep -Seconds 45
+    Start-Sleep -Seconds 30
     $dcStatus = $(kubectl get sqlmanagedinstances -n arc | Select-String "Ready" -Quiet)
 } while (-not $dcStatus)
 
@@ -136,7 +136,7 @@ $payload = @{
     }
 }
 
-kubectl patch svc jumpstart-sql-external-svc -n arc --type merge --patch $($payload | ConvertTo-Json -Depth 4 -Compress)
+kubectl patch svc jumpstart-sql-external-svc -n arc --type merge --patch $($payload | ConvertTo-Json -Depth 4 -Compress).Replace('"', '\"')
 Start-Sleep -Seconds 5 # To allow the CRD to update
 
 # Downloading demo database and restoring onto SQL MI

@@ -21,11 +21,11 @@ $scriptDir = "C:\ArcBox\Scripts"
 $vmDir = "C:\ArcBox\Virtual Machines"
 $logDir = "C:\ArcBox\Logs"
 
+Start-Transcript "${logDir}\ArcServersLogonScript.log"
+
 # Create ArcBox folders
 Write-Output "Create ArcBox folders..."
 New-Item -Path $vmDir -ItemType directory -Force
-
-Start-Transcript "${logDir}\ArcServersLogonScript.log"
 
 # Create Service Principal credential object
 $secPassword = ConvertTo-SecureString $spnClientSecret -AsPlainText -Force

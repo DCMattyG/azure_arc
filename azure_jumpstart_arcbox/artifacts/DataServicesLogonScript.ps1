@@ -177,8 +177,8 @@ Write-Host "`n"
 do {
     Write-Host "Waiting for data controller. Hold tight, this might take a few minutes..."
     Start-Sleep -Seconds 30
-    $dcStatus = $(if(kubectl get datacontroller -n arc | Select-String "Ready" -Quiet) { "Ready!" } Else { "Nope" })
-} while ($dcStatus -eq "Nope")
+    $dcStatus = $(kubectl get datacontroller -n arc | Select-String "Ready" -Quiet)
+} while (-not $dcStatus)
 
 Write-Host "Azure Arc data controller is ready!"
 Write-Host "`n"
