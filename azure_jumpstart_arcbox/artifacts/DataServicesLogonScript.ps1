@@ -143,7 +143,7 @@ Write-Host "`n"
 
 $customLocationId = $(az customlocation show --name "arcbox-cl" --resource-group $resourceGroup --query id -o tsv)
 $workspaceId = $(Get-AzOperationalInsightsWorkspace -Name $workspaceName -ResourceGroupName $resourceGroup).CustomerId.Guid
-$workspaceKey = Get-AzOperationalInsightsWorkspaceSharedKey -Name $workspaceName -ResourceGroupName $resourceGroup
+$workspaceKey = $(Get-AzOperationalInsightsWorkspaceSharedKey -Name $workspaceName -ResourceGroupName $resourceGroup).PrimarySharedKey
 
 $replaceParams = @{
     'resourceGroup'           = $resourceGroup

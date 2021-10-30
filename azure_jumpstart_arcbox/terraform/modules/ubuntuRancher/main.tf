@@ -236,20 +236,20 @@ resource "azurerm_virtual_machine" "client" {
   }
 }
 
-# resource "azurerm_virtual_machine_extension" "custom_script" {
-#   name                       = var.vm_name
-#   virtual_machine_id         = azurerm_virtual_machine.client.id
-#   publisher                  = "Microsoft.Azure.Extensions"
-#   type                       = "CustomScript"
-#   type_handler_version       = "2.0"
-#   auto_upgrade_minor_version = true
+resource "azurerm_virtual_machine_extension" "custom_script" {
+  name                       = var.vm_name
+  virtual_machine_id         = azurerm_virtual_machine.client.id
+  publisher                  = "Microsoft.Azure.Extensions"
+  type                       = "CustomScript"
+  type_handler_version       = "2.0"
+  auto_upgrade_minor_version = true
 
-#   protected_settings = <<PROTECTED_SETTINGS
-#     {
-#       "fileUris": [
-#           "${var.template_base_url}artifacts/installK3s.sh"
-#       ],
-#       "commandToExecute": "bash installK3s.sh --USER_NAME ${var.admin_username} --SPN_CLIENT_ID ${var.spn_client_id} --SPN_CLIENT_SECRET ${var.spn_client_secret} --SPN_TENANT_ID ${var.spn_tenant_id} --VM_NAME ${var.vm_name} --LOCATION ${data.azurerm_resource_group.rg.location} --STAGING_STORAGE ${var.storage_account_name} --WORKSPACE ${var.workspace_name}"
-#     }
-# PROTECTED_SETTINGS
-# }
+  protected_settings = <<PROTECTED_SETTINGS
+    {
+      "fileUris": [
+          "${var.template_base_url}artifacts/installK3s.sh"
+      ],
+      "commandToExecute": "bash installK3s.sh --USER_NAME ${var.admin_username} --SPN_CLIENT_ID ${var.spn_client_id} --SPN_CLIENT_SECRET ${var.spn_client_secret} --SPN_TENANT_ID ${var.spn_tenant_id} --VM_NAME ${var.vm_name} --LOCATION ${data.azurerm_resource_group.rg.location} --STAGING_STORAGE ${var.storage_account_name} --WORKSPACE ${var.workspace_name}"
+    }
+PROTECTED_SETTINGS
+}

@@ -72,7 +72,7 @@ if (Test-Path "C:\ProgramData\chocolatey\choco.exe") {
 } else {
     Write-Output "Chocolatey not detected, installing..."
     # Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-    $Script = Invoke-WebRequest 'https://chocolatey.org/install.ps1'
+    $Script = Invoke-WebRequest 'https://chocolatey.org/install.ps1' -UseBasicParsing
     $ScriptBlock = [Scriptblock]::Create($Script.Content)
     Invoke-Command -ScriptBlock $ScriptBlock
 }
