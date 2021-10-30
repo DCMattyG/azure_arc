@@ -184,8 +184,8 @@ Write-Host "Azure Arc data controller is ready!"
 Write-Host "`n"
 
 # Deploy SQL MI and PostgreSQL data services
-& $scriptDir\DeploySQLMI.ps1 -adminUsername $adminUsername -spnClientId $spnClientId -spnTenantId $spnTenantId -resourceGroup $resourceGroup -subscriptionId $subscriptionId -azdataUsername $azdataUsername -azdataPassword $azdataPassword
-& $scriptDir\DeployPostgreSQL.ps1 -adminUsername $adminUsername -spnClientId $spnClientId -spnTenantId $spnTenantId -resourceGroup $resourceGroup -subscriptionId $subscriptionId -azdataUsername $azdataUsername -azdataPassword $azdataPassword
+& $scriptDir\DeploySQLMI.ps1 -adminUsername $adminUsername -spnClientId $spnClientId -spnClientSecret $spnClientSecret -spnTenantId $spnTenantId -resourceGroup $resourceGroup -subscriptionId $subscriptionId -azdataUsername $azdataUsername -azdataPassword $azdataPassword
+& $scriptDir\DeployPostgreSQL.ps1 -adminUsername $adminUsername -spnClientId $spnClientId -spnClientSecret $spnClientSecret -spnTenantId $spnTenantId -resourceGroup $resourceGroup -subscriptionId $subscriptionId -azdataUsername $azdataUsername -azdataPassword $azdataPassword
 
 # Replacing Azure Data Studio settings template file
 Write-Host "Replacing Azure Data Studio settings template file"

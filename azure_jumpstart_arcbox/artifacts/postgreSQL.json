@@ -57,7 +57,7 @@
     "logsStorageSize": {
       "type": "String"
     },
-    "logStorageClassName": {
+    "logsStorageClassName": {
       "type": "String"
     },
     "backupsStorageSize": {
@@ -154,7 +154,7 @@
               "logs": {
                 "volumes": [
                   {
-                    "className": "[parameters('logStorageClassName')]",
+                    "className": "[parameters('logsStorageClassName')]",
                     "size": "[parameters('logsStorageSize')]"
                   }
                 ]

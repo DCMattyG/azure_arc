@@ -117,8 +117,8 @@ Write-Host "`n"
 do {
     Write-Host "Waiting for SQL Managed Instance. Hold tight, this might take a few minutes..."
     Start-Sleep -Seconds 45
-    $dcStatus = $(if(kubectl get sqlmanagedinstances -n arc | Select-String "Ready" -Quiet){"Ready!"}Else{"Nope"})
-} while ($dcStatus -eq "Nope")
+    $dcStatus = $(kubectl get sqlmanagedinstances -n arc | Select-String "Ready" -Quiet)
+} while (-not $dcStatus)
 
 Write-Host "Azure Arc SQL Managed Instance is ready!"
 Write-Host "`n"
@@ -126,15 +126,17 @@ Write-Host "`n"
 # Update Service Port from 1433 to Non-Standard
 $payload = @{
     spec = @{
-        ports = @{
+        ports = @(
+            @{
                 name       = "port-mssql-tds"
                 port       = 11433
                 targetPort = 1433
-        }
+            }
+        )
     }
 }
 
-kubectl patch svc jumpstart-sql-external-svc -n arc --type merge --patch $($payload | ConvertTo-Json)
+kubectl patch svc jumpstart-sql-external-svc -n arc --type merge --patch $($payload | ConvertTo-Json -Depth 4 -Compress)
 Start-Sleep -Seconds 5 # To allow the CRD to update
 
 # Downloading demo database and restoring onto SQL MI

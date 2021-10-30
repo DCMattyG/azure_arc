@@ -50,7 +50,7 @@
         "logsStorageSize": {
             "value": "logsSize-stage"
         },
-        "logStorageClassName": {
+        "logsStorageClassName": {
             "value": "logsStorageClassName-stage"
         },
         "backupsStorageSize": {

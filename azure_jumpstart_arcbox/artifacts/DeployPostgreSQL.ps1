@@ -27,7 +27,7 @@ function Format-Json {
 $scriptDir = "C:\ArcBox\Scripts"
 $logDir = "C:\ArcBox\Logs"
 
-Start-Transcript -Path C:\ArcBox\deployPostgreSQL.log
+Start-Transcript -Path "${logDir}\deployPostgreSQL.log"
 
 # Deployment environment variables
 $controllerName = "arcbox-dc" # This value needs to match the value of the data controller name as set by the ARM template deployment.
@@ -49,8 +49,8 @@ az login --service-principal --username $spnClientId --password $spnClientSecret
 Write-Host "Deploying Azure Arc PostgreSQL Hyperscale"
 Write-Host "`n"
 
-$dataControllerId = $(az resource show --resource-group $env:resourceGroup --name $controllerName --resource-type "Microsoft.AzureArcData/dataControllers" --query id -o tsv)
-$customLocationId = $(az customlocation show --name "arcbox-cl" --resource-group $env:resourceGroup --query id -o tsv)
+$dataControllerId = $(az resource show --resource-group $resourceGroup --name $controllerName --resource-type "Microsoft.AzureArcData/dataControllers" --query id -o tsv)
+$customLocationId = $(az customlocation show --name "arcbox-cl" --resource-group $resourceGroup --query id -o tsv)
 
 ################################################
 # Localize ARM template
@@ -115,23 +115,25 @@ $pgWorkerPodName = "jumpstartpsw0-0"
 do {
     Write-Host "Waiting for PostgreSQL Hyperscale. Hold tight, this might take a few minutes..."
     Start-Sleep -Seconds 45
-    $buildService = $(if((kubectl get pods -n arc | Select-String $pgControllerPodName| Select-String "Running" -Quiet) -and (kubectl get pods -n arc | Select-String $pgWorkerPodName| Select-String "Running" -Quiet)){"Ready!"}Else{"Nope"})
-} while ($buildService -eq "Nope")
+    $buildService = $((kubectl get pods -n arc | Select-String $pgControllerPodName | Select-String "Running" -Quiet) -and (kubectl get pods -n arc | Select-String $pgWorkerPodName | Select-String "Running" -Quiet))
+} while (-not $buildService)
 
 Start-Sleep -Seconds 60
 
 # Update Service Port from 5432 to Non-Standard
 $payload = @{
     spec = @{
-        ports = @{
+        ports = @(
+            @{
                 name       = "port-pgsql"
                 port       = 15432
                 targetPort = 5432
-        }
+            }
+        )
     }
 }
 
-kubectl patch svc jumpstartps-external-svc -n arc --type merge --patch $($payload | ConvertTo-Json)
+kubectl patch svc jumpstartps-external-svc -n arc --type merge --patch $($payload | ConvertTo-Json -Depth 4 -Compress)
 Start-Sleep -Seconds 5 # To allow the CRD to update
 
 # Downloading demo database and restoring onto Postgres
