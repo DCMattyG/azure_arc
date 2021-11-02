@@ -79,11 +79,17 @@ Write-Host "`n"
 az -v
 
 # Downloading CAPI Kubernetes cluster kubeconfig file
-Write-Host "Downloading CAPI Kubernetes cluster kubeconfig file..."
+Write-Host "Attempting to download CAPI Kubernetes cluster kubeconfig file..."
 $sourceFile = "https://${stagingStorageAccountName}.blob.core.windows.net/staging-capi/config.arcbox-capi-data"
 $context = (Get-AzStorageAccount -ResourceGroupName $resourceGroup).Context
 $sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
 $sourceFile = $sourceFile + $sas
+
+while(-not $(Get-AzStorageBlob -Container "staging-capi" -Blob "config.arcbox-capi-data" -Context $context)) {
+    Write-Host "CAPI cluster config file not found, waiting for it to be uploaded...."
+    Start-Sleep -Seconds 60
+}
+
 azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile "C:\Users\${adminUsername}\.kube\config"
 kubectl config rename-context "arcbox-capi-data-admin@arcbox-capi-data" "arcbox-capi"
 
@@ -114,8 +120,8 @@ az k8s-extension create --name arc-data-services --extension-type microsoft.arcd
 do {
     Write-Host "Waiting for bootstrapper pod, hold tight..."
     Start-Sleep -Seconds 30
-    $podStatus = $(if(kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet){"Ready!"}Else{"Nope"})
-} while ($podStatus -eq "Nope")
+    $podStatus = $(kubectl get pods -n arc | Select-String "bootstrapper" | Select-String "Running" -Quiet)
+} while (-not $podStatus)
 
 $connectedClusterId = az connectedk8s show --name $connectedClusterName --resource-group $resourceGroup --query id -o tsv
 $extensionId = az k8s-extension show --name arc-data-services --cluster-type connectedClusters --cluster-name $connectedClusterName --resource-group $resourceGroup --query id -o tsv
@@ -193,11 +199,17 @@ New-Item -Path "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\" -Name 
 Copy-Item -Path "${scriptDir}\settingsTemplate.json" -Destination "C:\Users\$adminUsername\AppData\Roaming\azuredatastudio\User\settings.json"
 
 # Downloading Rancher K3s kubeconfig file
-Write-Host "Downloading Rancher K3s kubeconfig file"
+Write-Host "Attempting to download Rancher K3s kubeconfig file..."
 $sourceFile = "https://$stagingStorageAccountName.blob.core.windows.net/staging-k3s/config"
 $context = (Get-AzStorageAccount -ResourceGroupName $resourceGroup).Context
 $sas = New-AzStorageAccountSASToken -Context $context -Service Blob -ResourceType Object -Permission racwdlup
 $sourceFile = $sourceFile + $sas
+
+while(-not $(Get-AzStorageBlob -Container "staging-k3s" -Blob "config" -Context $context)) {
+    Write-Host "Rancher K3s config file not found, waiting for it to be uploaded...."
+    Start-Sleep -Seconds 60
+}
+
 azcopy cp --check-md5 FailIfDifferentOrMissing $sourceFile  "C:\Users\${adminUsername}\.kube\config-k3s"
 
 # Merging kubeconfig files from CAPI and Rancher K3s
