@@ -505,6 +505,69 @@
                     }
                 }
             }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "OnboardArcMachine",
+            "resourceGroup": "[parameters('azureRgName')]",
+            "dependsOn": [
+                "GetAccessToken"
+            ],
+            "properties": {
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "scenarioUrl": {
+                        "value": "[variables('scenarioUrl')]"
+                    },
+                    "token": {
+                        "value": "[reference('GetAccessToken').outputs.token.value]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "vmName": {
+                            "type": "string"
+                        },
+                        "scenarioUrl": {
+                            "type": "string"
+                        },
+                        "token": {
+                            "type": "securestring"
+                        }
+                    },
+                    "variables": {},
+                    "resources": [
+                        {
+                            "type": "Microsoft.Compute/virtualMachines/extensions",
+                            "name": "[concat(parameters('vmName'),'/onboardArcMachine')]",
+                            "apiVersion": "2019-07-01",
+                            "location": "[resourceGroup().location]",
+                            "properties": {
+                                "publisher": "Microsoft.Compute",
+                                "type": "CustomScriptExtension",
+                                "typeHandlerVersion": "1.10",
+                                "autoUpgradeMinorVersion": true,
+                                "settings": {
+                                    "fileUris": [
+                                        "[uri(parameters('scenarioUrl'), 'artifacts/installArcAgent.ps1')]"
+                                    ],
+                                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Bypass -File installArcAgent.ps1', ' -Token ', parameters('token'), ' -Location ', resourceGroup().location, ' -SubscriptionId ', subscription().subscriptionId, ' -ResourceGroupName ', resourceGroup().name)]"
+                                }
+                            }
+                        }
+                    ],
+                    "outputs": {}
+                }
+            }
         }
     ],
     "outputs": {
