@@ -161,6 +161,13 @@
                 "description": "The prefix for the first subnet in the first VNET."
             }
         },
+        "sharedKey": {
+            "type": "securestring",
+            "defaultValue": "microsoft",
+            "metadata": {
+                "description": "GitHub Account"
+            }
+        },
         "githubAccount": {
             "type": "string",
             "defaultValue": "microsoft",
@@ -242,7 +249,7 @@
             "type": "Microsoft.Resources/deployments",
             "apiVersion": "2021-04-01",
             "name": "OnPremDeployment",
-            "resourceGroup": "[parameters('azureRgName')]",
+            "resourceGroup": "[parameters('onPremRgName')]",
             "dependsOn": [
                 "[resourceId('Microsoft.Resources/resourceGroups', parameters('onPremRgName'))]"
             ],
@@ -291,6 +298,139 @@
                     "onPremBastionName": {
                         "value": "[parameters('onPremBastionName')]"
                     }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "ConnectAzureGateway",
+            "resourceGroup": "[parameters('azureRgName')]",
+            "dependsOn": [
+                "AzureDeployment",
+                "OnPremDeployment"
+            ],
+            "properties": {
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                    "azureGatewayName": {
+                        "value": "[parameters('cloudGatewayName')]"
+                    },
+                    "onPremGatewayName": {
+                        "value": "[parameters('onPremGatewayName')]"
+                    },
+                    "onPremGatewayResourceGroupName": {
+                        "value": "[parameters('onPremRgName')]"
+                    },
+                    "sharedKey": {
+                        "value": "[parameters('sharedKey')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "azureGatewayName": {
+                            "type": "string"
+                        },
+                        "onPremGatewayName": {
+                            "type": "string"
+                        },
+                        "onPremGatewayResourceGroupName": {
+                            "type": "string"
+                        },
+                        "sharedKey": {
+                            "type": "securestring"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "apiVersion": "2020-05-01",
+                            "type": "Microsoft.Network/connections",
+                            "name": "azure-to-onprem",
+                            "location": "[resourceGroup().location]",
+                            "properties": {
+                                "virtualNetworkGateway1": {
+                                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', parameters('azureGatewayName'))]"
+                                },
+                                "virtualNetworkGateway2": {
+                                    "id": "[resourceId(parameters('onPremGatewayResourceGroupName'), 'Microsoft.Network/virtualNetworkGateways', parameters('onPremGatewayName'))]"
+                                },
+                                "connectionType": "Vnet2Vnet",
+                                "routingWeight": 3,
+                                "sharedKey": "[parameters('sharedKey')]"
+                            }
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "ConnectOnPremGateway",
+            "resourceGroup": "[parameters('onPremRgName')]",
+            "dependsOn": [
+                "ConnectAzureGateway"
+            ],
+            "properties": {
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                    "azureGatewayName": {
+                        "value": "[parameters('cloudGatewayName')]"
+                    },
+                    "onPremGatewayName": {
+                        "value": "[parameters('onPremGatewayName')]"
+                    },
+                    "azureGatewayResourceGroupName": {
+                        "value": "[parameters('azureRgName')]"
+                    },
+                    "sharedKey": {
+                        "value": "[parameters('sharedKey')]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "onPremGatewayName": {
+                            "type": "[parameters('onPremGatewayName')]"
+                        },
+                        "azureGatewayName": {
+                            "type": "[parameters('azureGatewayName')]"
+                        },
+                        "azureGatewayResourceGroupName": {
+                            "type": "[parameters('azureGatewayResourceGroupName')]"
+                        },
+                        "sharedKey": {
+                            "type": "[parameters('sharedKey')]"
+                        }
+                    },
+                    "resources": [
+                        {
+                            "apiVersion": "2020-05-01",
+                            "type": "Microsoft.Network/connections",
+                            "name": "onprem-to-azure",
+                            "location": "[resourceGroup().location]",
+                            "properties": {
+                                "virtualNetworkGateway1": {
+                                    "id": "[resourceId('Microsoft.Network/virtualNetworkGateways', parameters('onPremGatewayName'))]"
+                                },
+                                "virtualNetworkGateway2": {
+                                    "id": "[resourceId(parameters('azureGatewayResourceGroupName'), 'Microsoft.Network/virtualNetworkGateways', parameters('azureGatewayName'))]"
+                                },
+                                "connectionType": "Vnet2Vnet",
+                                "routingWeight": 3,
+                                "sharedKey": "[parameters('sharedKey')]"
+                            }
+                        }
+                    ]
                 }
             }
         }
