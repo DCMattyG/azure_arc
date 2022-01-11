@@ -451,6 +451,9 @@
                 "parameters": {
                     "roleAssignmentName": {
                         "value": "[reference('AzureDeployment').outputs.roleAssignmentName.value]"
+                    },
+                    "managedIdentityId": {
+                        "value": "[reference('AzureDeployment').outputs.managedIdentityId.value]"
                     }
                 },
                 "template": {
@@ -458,6 +461,9 @@
                     "contentVersion": "1.0.0.0",
                     "parameters": {
                         "roleAssignmentName": {
+                            "type": "string"
+                        },
+                        "managedIdentityId": {
                             "type": "string"
                         }
                     },
@@ -475,7 +481,7 @@
                             "identity": {
                                 "type": "UserAssigned",
                                 "userAssignedIdentities": {
-                                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities',variables('identityName'))]": {}
+                                    "[parameters('managedIdentityId')]": {}
                                 }
                             },
                             "properties": {
@@ -488,10 +494,7 @@
                                 "timeout": "PT30M",
                                 "cleanupPreference": "OnSuccess",
                                 "retentionInterval": "PT1H"
-                            },
-                            "dependsOn": [
-                                "[resourceId('Microsoft.Authorization/roleAssignments', parameters('roleAssignmentName'))]"
-                            ]
+                            }
                         }
                     ],
                     "outputs": {

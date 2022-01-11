@@ -272,6 +272,10 @@
         "roleAssignmentName": {
             "type": "string",
             "value": "[variables('roleAssignmentName')]"
+        },
+        "managedIdentityId": {
+            "type": "string",
+            "value": "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
         }
     }
 }
