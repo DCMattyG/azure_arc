@@ -104,12 +104,15 @@
             "apiVersion": "2021-04-01",
             "name": "AzureDeployment",
             "resourceGroup": "[parameters('azureRgName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/resourceGroups', parameters('azureRgName'))]"
+            ],
             "properties": {
                 "expressionEvaluationOptions": {
                     "scope": "Inner"
                 },
                 "templateLink": {
-                    "uri": "[variables('azureTemplate')]"
+                    "uri": "https://raw.githubusercontent.com/DCMattyG/azure_arc/privatelink/azure_arc_servers_jumpstart/privatelink/nested/cloud.json"
                 },
                 "mode": "Incremental",
                 "parameters": {
