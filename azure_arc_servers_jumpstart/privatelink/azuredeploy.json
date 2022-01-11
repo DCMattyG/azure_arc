@@ -81,7 +81,8 @@
         }
     },
     "variables": {
-        "scenarioUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_arc_servers_jumpstart/privatelink/')]"
+        "scenarioUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_arc_servers_jumpstart/privatelink/')]",
+        "azureTemplate": "[uri(variables('scenarioUrl'), 'nested/cloud.json')]"
     },
     "resources": [
         {
@@ -108,7 +109,7 @@
                     "scope": "Inner"
                 },
                 "templateLink": {
-                    "relativePath": "[uri(variables('scenarioUrl'), 'nested/cloud.json')]"
+                    "uri": "[variables('azureTemplate')]"
                 },
                 "mode": "Incremental",
                 "parameters": {
