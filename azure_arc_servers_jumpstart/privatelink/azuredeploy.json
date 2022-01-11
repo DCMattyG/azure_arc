@@ -400,16 +400,16 @@
                     "contentVersion": "1.0.0.0",
                     "parameters": {
                         "onPremGatewayName": {
-                            "type": "[parameters('onPremGatewayName')]"
+                            "type": "string"
                         },
                         "azureGatewayName": {
-                            "type": "[parameters('azureGatewayName')]"
+                            "type": "string"
                         },
                         "azureGatewayResourceGroupName": {
-                            "type": "[parameters('azureGatewayResourceGroupName')]"
+                            "type": "string"
                         },
                         "sharedKey": {
-                            "type": "[parameters('sharedKey')]"
+                            "type": "securestring"
                         }
                     },
                     "resources": [
@@ -433,7 +433,81 @@
                     ]
                 }
             }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "GetAccessToken",
+            "resourceGroup": "[parameters('onPremRgName')]",
+            "dependsOn": [
+                "AzureDeployment",
+                "OnPremDeployment"
+            ],
+            "properties": {
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                    "roleAssignmentName": {
+                        "value": "[reference('AzureDeployment').outputs.roleAssignmentName.value]"
+                    }
+                },
+                "template": {
+                    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+                    "contentVersion": "1.0.0.0",
+                    "parameters": {
+                        "roleAssignmentName": {
+                            "type": "string"
+                        }
+                    },
+                    "variables": {
+                        "identityName": "deploy-identity",
+                        "deploymentScriptName": "getAzureToken"
+                    },
+                    "resources": [
+                        {
+                            "type": "Microsoft.Resources/deploymentScripts",
+                            "apiVersion": "2020-10-01",
+                            "name": "[variables('deploymentScriptName')]",
+                            "location": "[resourceGroup().location]",
+                            "kind": "AzurePowerShell",
+                            "identity": {
+                                "type": "UserAssigned",
+                                "userAssignedIdentities": {
+                                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities',variables('identityName'))]": {}
+                                }
+                            },
+                            "properties": {
+                                "azPowerShellVersion": "6.6",
+                                "scriptContent": "
+                                    $token = $(Get-AzAccessToken).Token
+                                    $DeploymentScriptOutputs = @{}
+                                    $DeploymentScriptOutputs['token'] = $token
+                                ",
+                                "timeout": "PT30M",
+                                "cleanupPreference": "OnSuccess",
+                                "retentionInterval": "PT1H"
+                            },
+                            "dependsOn": [
+                                "[resourceId('Microsoft.Authorization/roleAssignments', parameters('roleAssignmentName'))]"
+                            ]
+                        }
+                    ],
+                    "outputs": {
+                        "token": {
+                            "type": "string",
+                            "value": "[reference(variables('deploymentScriptName')).outputs.token]"
+                        }
+                    }
+                }
+            }
         }
     ],
-    "outputs": {}
+    "outputs": {
+        "token": {
+            "type": "string",
+            "value": "[reference('GetAccessToken').outputs.token.value]"
+        }
+    }
 }

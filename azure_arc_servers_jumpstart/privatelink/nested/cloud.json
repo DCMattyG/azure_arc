@@ -268,5 +268,10 @@
             ]
         }
     ],
-    "outputs": {}
+    "outputs": {
+        "roleAssignmentName": {
+            "type": "string",
+            "value": "[variables('roleAssignmentName')]"
+        }
+    }
 }
