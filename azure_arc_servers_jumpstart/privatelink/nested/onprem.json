@@ -87,42 +87,19 @@
         }
     },
     "variables": {
-        "identityName": "deploy-identity",
-        "roleAssignmentName": "[guid(resourceGroup().id)]",
         "networkInterfaceName": "[concat(parameters('vmName'), '-NIC')]",
         "nsgName": "[concat(parameters('vmName'), '-NSG')]",
         "gatewayPublicIPName": "[concat(parameters('onPremGatewayName'), '-PIP')]",
-        "bastionPublicIPName": "[concat(parameters('onPremBastionName'), '-PIP')]",
-        "contributorRole": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
+        "bastionPublicIPName": "[concat(parameters('onPremBastionName'), '-PIP')]"
     },
     "resources": [
-        {
-            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
-            "name": "[variables('identityName')]",
-            "apiVersion": "2018-11-30",
-            "location": "[resourceGroup().location]"
-        },
-        {
-            "type": "Microsoft.Authorization/roleAssignments",
-            "apiVersion": "2018-09-01-preview",
-            "name": "[variables('roleAssignmentName')]",
-            "properties": {
-                "scope": "[resourceGroup().id]",
-                "roleDefinitionId": "[variables('contributorRole')]",
-                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2018-11-30').principalId]",
-                "principalType": "ServicePrincipal"
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
-            ]
-        },
         {
             "apiVersion": "2020-05-01",
             "location": "[resourceGroup().location]",
             "type": "Microsoft.Network/publicIPAddresses",
             "name": "[variables('gatewayPublicIPName')]",
             "properties": {
-                "publicIPAllocationMethod": "Static"
+                "publicIPAllocationMethod": "Dynamic"
             }
         },
         {
@@ -130,6 +107,9 @@
             "location": "[resourceGroup().location]",
             "type": "Microsoft.Network/publicIPAddresses",
             "name": "[variables('bastionPublicIPName')]",
+            "sku": {
+                "name": "Standard"
+            },
             "properties": {
                 "publicIPAllocationMethod": "Static"
             }

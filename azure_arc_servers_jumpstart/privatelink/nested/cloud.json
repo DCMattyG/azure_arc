@@ -96,7 +96,7 @@
             "type": "Microsoft.Network/publicIPAddresses",
             "name": "[variables('gatewayPublicIPName')]",
             "properties": {
-                "publicIPAllocationMethod": "Static"
+                "publicIPAllocationMethod": "Dynamic"
             }
         },
         {

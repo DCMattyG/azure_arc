@@ -177,8 +177,7 @@
         }
     },
     "variables": {
-        "scenarioUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_arc_servers_jumpstart/privatelink/')]",
-        "azureTemplate": "[uri(variables('scenarioUrl'), 'nested/cloud.json')]"
+        "scenarioUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_arc_servers_jumpstart/privatelink/')]"
     },
     "resources": [
         {
