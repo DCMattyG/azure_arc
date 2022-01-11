@@ -80,7 +80,7 @@
         },
         "vmName": {
             "type": "string",
-            "defaultValue": "[take(concat('arc', uniqueString(resourceGroup().id)), 15)]",
+            "defaultValue": "ArcDemo-VM",
             "metadata": {
                 "description": "Username for the Virtual Machine."
             }
@@ -94,6 +94,7 @@
         },
         "adminUsername": {
             "type": "string",
+            "defaultValue": "arcadmin",
             "metadata": {
                 "description": "Username for the Virtual Machine."
             }

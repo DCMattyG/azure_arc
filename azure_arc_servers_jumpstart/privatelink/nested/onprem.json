@@ -4,7 +4,7 @@
     "parameters": {
         "vmName": {
             "type": "string",
-            "defaultValue": "[take(concat('arc', uniqueString(resourceGroup().id)), 15)]",
+            "defaultValue": "ArcDemo-VM",
             "metadata": {
                 "description": "Username for the Virtual Machine."
             }
@@ -43,7 +43,7 @@
                 "description": "Address space for the first VNET."
             }
         },
-        "onPrematewaySubnetPrefix": {
+        "onPremGatewaySubnetPrefix": {
             "type": "string",
             "defaultValue": "192.168.0.0/26",
             "metadata": {
@@ -149,7 +149,7 @@
                     {
                         "name": "GatewaySubnet",
                         "properties": {
-                            "addressPrefix": "[parameters('onPrematewaySubnetPrefix')]"
+                            "addressPrefix": "[parameters('onPremGatewaySubnetPrefix')]"
                         }
                     },
                     {
