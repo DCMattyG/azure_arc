@@ -23,6 +23,19 @@
                 "description": "Name for the Resource Group which will imitate an on-premises environment"
             }
         },
+        "sqlAdminLogin": {
+            "type": "string",
+            "defaultValue": "sqladmin",
+            "metadata": {
+                "description": "Admin login for the SQL Server"
+            }
+        },
+        "sqlAdminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "Password for the SQL Server"
+            }
+        },
         "cloudVNetName": {
             "type": "string",
             "defaultValue": "Azure-NET",
@@ -44,7 +57,7 @@
                 "description": "Name of the first subnet in the first VNET. Please note, an additional subnet called GatewaySubnet will be created where the VirtualNetworkGateway will be deployed. The name of that subnet must not be changed from GatewaySubnet."
             }
         },
-        "gatewaySubnetPrefix": {
+        "cloudGatewaySubnetPrefix": {
             "type": "string",
             "defaultValue": "172.16.0.0/26",
             "metadata": {
@@ -61,6 +74,88 @@
         "cloudGatewayName": {
             "type": "string",
             "defaultValue": "AzureGateway",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "vmName": {
+            "type": "string",
+            "defaultValue": "[take(concat('arc', uniqueString(resourceGroup().id)), 15)]",
+            "metadata": {
+                "description": "Username for the Virtual Machine."
+            }
+        },
+        "vmSize": {
+            "type": "string",
+            "defaultValue": "Standard_D4s_v4",
+            "metadata": {
+                "description": "Size of the Virtual Machine"
+            }
+        },
+        "adminUsername": {
+            "type": "string",
+            "metadata": {
+                "description": "Username for the Virtual Machine."
+            }
+        },
+        "adminPassword": {
+            "type": "securestring",
+            "metadata": {
+                "description": "SSH Key or password for the Virtual Machine. SSH key is recommended."
+            }
+        },
+        "onPremVNetName": {
+            "type": "string",
+            "defaultValue": "OnPrem-NET",
+            "metadata": {
+                "description": "Name of the first VNET."
+            }
+        },
+        "onPremVNetPrefix": {
+            "type": "string",
+            "defaultValue": "192.168.0.0/24",
+            "metadata": {
+                "description": "Address space for the first VNET."
+            }
+        },
+        "onPremGatewaySubnetPrefix": {
+            "type": "string",
+            "defaultValue": "192.168.0.0/26",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "onPremBastionSubnetPrefix": {
+            "type": "string",
+            "defaultValue": "192.168.0.64/26",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "onPremSubnetName": {
+            "type": "string",
+            "defaultValue": "default",
+            "metadata": {
+                "description": "Name of the first subnet in the first VNET. Please note, an additional subnet called GatewaySubnet will be created where the VirtualNetworkGateway will be deployed. The name of that subnet must not be changed from GatewaySubnet."
+            }
+        },
+        "onPremSubnetPrefix": {
+            "type": "string",
+            "defaultValue": "192.168.0.128/26",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "onPremGatewayName": {
+            "type": "string",
+            "defaultValue": "OnPremGateway",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "onPremBastionName": {
+            "type": "string",
+            "defaultValue": "OnPremBastion",
             "metadata": {
                 "description": "The prefix for the first subnet in the first VNET."
             }
@@ -116,6 +211,12 @@
                 },
                 "mode": "Incremental",
                 "parameters": {
+                    "sqlAdminLogin": {
+                        "value": "[parameters('sqlAdminLogin')]"
+                    },
+                    "sqlAdminPassword": {
+                        "value": "[parameters('sqlAdminPassword')]"
+                    },
                     "cloudVNetName": {
                         "value": "[parameters('cloudVNetName')]"
                     },
@@ -125,14 +226,70 @@
                     "cloudSubnetName": {
                         "value": "[parameters('cloudSubnetName')]"
                     },
-                    "gatewaySubnetPrefix": {
-                        "value": "[parameters('gatewaySubnetPrefix')]"
+                    "cloudGatewaySubnetPrefix": {
+                        "value": "[parameters('cloudGatewaySubnetPrefix')]"
                     },
                     "cloudSubnetPrefix": {
                         "value": "[parameters('cloudSubnetPrefix')]"
                     },
                     "cloudGatewayName": {
                         "value": "[parameters('cloudGatewayName')]"
+                    }
+                }
+            }
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "OnPremDeployment",
+            "resourceGroup": "[parameters('azureRgName')]",
+            "dependsOn": [
+                "[resourceId('Microsoft.Resources/resourceGroups', parameters('onPremRgName'))]"
+            ],
+            "properties": {
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "templateLink": {
+                    "uri": "https://raw.githubusercontent.com/DCMattyG/azure_arc/privatelink/azure_arc_servers_jumpstart/privatelink/nested/onprem.json"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                    "vmName": {
+                        "value": "[parameters('vmName')]"
+                    },
+                    "vmSize": {
+                        "value": "[parameters('vmSize')]"
+                    },
+                    "adminUsername": {
+                        "value": "[parameters('adminUsername')]"
+                    },
+                    "adminPassword": {
+                        "value": "[parameters('adminPassword')]"
+                    },
+                    "onPremVNetName": {
+                        "value": "[parameters('onPremVNetName')]"
+                    },
+                    "onPremVNetPrefix": {
+                        "value": "[parameters('onPremVNetPrefix')]"
+                    },
+                    "onPremGatewaySubnetPrefix": {
+                        "value": "[parameters('onPremGatewaySubnetPrefix')]"
+                    },
+                    "onPremBastionSubnetPrefix": {
+                        "value": "[parameters('onPremBastionSubnetPrefix')]"
+                    },
+                    "onPremSubnetName": {
+                        "value": "[parameters('onPremSubnetName')]"
+                    },
+                    "onPremSubnetPrefix": {
+                        "value": "[parameters('onPremSubnetPrefix')]"
+                    },
+                    "onPremGatewayName": {
+                        "value": "[parameters('onPremGatewayName')]"
+                    },
+                    "onPremBastionName": {
+                        "value": "[parameters('onPremBastionName')]"
                     }
                 }
             }

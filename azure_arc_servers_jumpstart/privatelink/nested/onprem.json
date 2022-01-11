@@ -18,6 +18,7 @@
         },
         "adminUsername": {
             "type": "string",
+            "defaultValue": "arcadmin",
             "metadata": {
                 "description": "Username for the Virtual Machine."
             }
@@ -28,57 +29,70 @@
                 "description": "SSH Key or password for the Virtual Machine. SSH key is recommended."
             }
         },
-        "virtualNetworkName": {
+        "onPremVNetName": {
             "type": "string",
-            "defaultValue": "Azure-NET",
+            "defaultValue": "OnPrem-NET",
             "metadata": {
                 "description": "Name of the first VNET."
             }
         },
-        "addressPrefix": {
+        "onPremVNetPrefix": {
             "type": "string",
-            "defaultValue": "10.250.0.0/24",
+            "defaultValue": "192.168.0.0/24",
             "metadata": {
                 "description": "Address space for the first VNET."
             }
         },
-        "subnetName": {
+        "onPrematewaySubnetPrefix": {
+            "type": "string",
+            "defaultValue": "192.168.0.0/26",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "onPremBastionSubnetPrefix": {
+            "type": "string",
+            "defaultValue": "192.168.0.64/26",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "onPremSubnetName": {
             "type": "string",
             "defaultValue": "default",
             "metadata": {
                 "description": "Name of the first subnet in the first VNET. Please note, an additional subnet called GatewaySubnet will be created where the VirtualNetworkGateway will be deployed. The name of that subnet must not be changed from GatewaySubnet."
             }
         },
-        "subnetPrefix": {
+        "onPremSubnetPrefix": {
             "type": "string",
-            "defaultValue": "10.250.0.0/26",
+            "defaultValue": "192.168.0.128/26",
             "metadata": {
                 "description": "The prefix for the first subnet in the first VNET."
             }
         },
-        "githubAccount": {
+        "onPremGatewayName": {
             "type": "string",
-            "defaultValue": "microsoft",
+            "defaultValue": "OnPremGateway",
             "metadata": {
-                "description": "GitHub Account"
+                "description": "The prefix for the first subnet in the first VNET."
             }
         },
-        "githubBranch": {
+        "onPremBastionName": {
             "type": "string",
-            "defaultValue": "main",
+            "defaultValue": "OnPremBastion",
             "metadata": {
-                "description": "GitHub Branch"
+                "description": "The prefix for the first subnet in the first VNET."
             }
         }
     },
     "variables": {
-        "scenarioUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_arc_servers_jumpstart/privatelink/')]",
         "identityName": "deploy-identity",
         "roleAssignmentName": "[guid(resourceGroup().id)]",
-        "deploymentScriptName": "getAzureToken",
         "networkInterfaceName": "[concat(parameters('vmName'), '-NIC')]",
         "nsgName": "[concat(parameters('vmName'), '-NSG')]",
-        "vmPublicIPName": "[concat(parameters('vmName'), '-PIP')]",
+        "gatewayPublicIPName": "[concat(parameters('onPremGatewayName'), '-PIP')]",
+        "bastionPublicIPName": "[concat(parameters('onPremBastionName'), '-PIP')]",
         "contributorRole": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
     },
     "resources": [
@@ -106,27 +120,48 @@
             "apiVersion": "2020-05-01",
             "location": "[resourceGroup().location]",
             "type": "Microsoft.Network/publicIPAddresses",
-            "name": "[variables('vmPublicIPName')]",
+            "name": "[variables('gatewayPublicIPName')]",
             "properties": {
-                "publicIPAllocationMethod": "Dynamic"
+                "publicIPAllocationMethod": "Static"
+            }
+        },
+        {
+            "apiVersion": "2020-05-01",
+            "location": "[resourceGroup().location]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('bastionPublicIPName')]",
+            "properties": {
+                "publicIPAllocationMethod": "Static"
             }
         },
         {
             "apiVersion": "2020-05-01",
             "type": "Microsoft.Network/virtualNetworks",
-            "name": "[parameters('virtualNetworkName')]",
+            "name": "[parameters('onPremVNetName')]",
             "location": "[resourceGroup().location]",
             "properties": {
                 "addressSpace": {
                     "addressPrefixes": [
-                        "[parameters('addressPrefix')]"
+                        "[parameters('onPremVNetPrefix')]"
                     ]
                 },
                 "subnets": [
                     {
-                        "name": "[parameters('subnetName')]",
+                        "name": "GatewaySubnet",
                         "properties": {
-                            "addressPrefix": "[parameters('subnetPrefix')]",
+                            "addressPrefix": "[parameters('onPrematewaySubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "AzureBastionSubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('onPremBastionSubnetPrefix')]"
+                        }
+                    },
+                    {
+                        "name": "[parameters('onPremSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('onPremSubnetPrefix')]",
                             "privateEndpointNetworkPolicies": "Disabled"
                         }
                     }
@@ -168,11 +203,8 @@
                         "name": "ipconfig1",
                         "properties": {
                             "privateIPAllocationMethod": "Dynamic",
-                            "publicIPAddress": {
-                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('vmPublicIPName'))]"
-                            },
                             "subnet": {
-                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('virtualNetworkName'), parameters('subnetName'))]"
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('onPremVNetName'), parameters('onPremSubnetName'))]"
                             }
                         }
                     }
@@ -182,10 +214,72 @@
                 }
             },
             "dependsOn": [
-                "[resourceId('Microsoft.Network/publicIPAddresses', variables('vmPublicIPName'))]",
-                "[resourceId('Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('onPremVNetName'))]",
                 "[resourceId('Microsoft.Network/networkSecurityGroups', variables('nsgName'))]"
             ]
+        },
+        {
+            "apiVersion": "2020-05-01",
+            "location": "[resourceGroup().location]",
+            "type": "Microsoft.Network/virtualNetworkGateways",
+            "name": "[parameters('onPremGatewayName')]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('onPremVNetName'), 'GatewaySubnet')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('gatewayPublicIPName'))]"
+                            }
+                        },
+                        "name": "default"
+                    }
+                ],
+                "sku": {
+                    "name": "Basic",
+                    "tier": "Basic"
+                },
+                "gatewayType": "Vpn",
+                "vpnType": "RouteBased",
+                "enableBgp": false
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses/', variables('gatewayPublicIPName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/', parameters('onPremVNetName'))]"
+            ]
+        },
+        {
+            "apiVersion": "2020-11-01",
+            "location": "[resourceGroup().location]",
+            "type": "Microsoft.Network/bastionHosts",
+            "name": "[parameters('onPremBastionName')]",
+            "sku": {
+                "name": "Basic"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('onPremVNetName'))]"
+            ],
+            "properties": {
+                "enableIpConnect": "false",
+                "enableTunneling": "false",
+                "ipConfigurations": [
+                    {
+                        "name": "IpConf",
+                        "properties": {
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('onPremVNetName'),'AzureBastionSubnet')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', variables('bastionPublicIPName'))]"
+                            }
+                        }
+                    }
+                ],
+                "scaleUnits": 1
+            }
         },
         {
             "type": "Microsoft.Compute/virtualMachines",
@@ -231,69 +325,7 @@
             "dependsOn": [
                 "[resourceId('Microsoft.Network/networkInterfaces', variables('networkInterfaceName'))]"
             ]
-        },
-        {
-            "type": "Microsoft.Compute/virtualMachines/extensions",
-            "name": "[concat(parameters('vmName'),'/onboardArcMachine')]",
-            "apiVersion": "2019-07-01",
-            "location": "[resourceGroup().location]",
-            "properties": {
-                "publisher": "Microsoft.Compute",
-                "type": "CustomScriptExtension",
-                "typeHandlerVersion": "1.10",
-                "autoUpgradeMinorVersion": true,
-                "settings": {
-                    "fileUris": [
-                        "[uri(variables('scenarioUrl'), 'artifacts/installArcAgent.ps1')]"
-                    ],
-                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Bypass -File installArcAgent.ps1', ' -Token ', reference(variables('deploymentScriptName')).outputs.token, ' -Location ', resourceGroup().location, ' -SubscriptionId ', subscription().subscriptionId, ' -ResourceGroupName ', resourceGroup().name)]"
-                }
-            },
-            "dependsOn": [
-                "[concat('Microsoft.Compute/virtualMachines/', parameters('vmName'))]",
-                "[resourceId('Microsoft.Resources/deploymentScripts', variables('deploymentScriptName'))]"
-            ]
-        },
-        {
-            "type": "Microsoft.Resources/deploymentScripts",
-            "apiVersion": "2020-10-01",
-            "name": "[variables('deploymentScriptName')]",
-            "location": "[resourceGroup().location]",
-            "kind": "AzurePowerShell",
-            "identity": {
-                "type": "UserAssigned",
-                "userAssignedIdentities": {
-                    "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities',variables('identityName'))]": {}
-                }
-            },
-            "properties": {
-                "azPowerShellVersion": "6.6",
-                "scriptContent": "
-                    $token = $(Get-AzAccessToken).Token
-                    $DeploymentScriptOutputs = @{}
-                    $DeploymentScriptOutputs['token'] = $token
-                ",
-                "timeout": "PT30M",
-                "cleanupPreference": "OnSuccess",
-                "retentionInterval": "PT1H"
-            },
-            "dependsOn": [
-                "[resourceId('Microsoft.Authorization/roleAssignments', variables('roleAssignmentName'))]"
-            ]
         }
     ],
-    "outputs": {
-        "token": {
-            "type": "string",
-            "value": "[reference(variables('deploymentScriptName')).outputs.token]"
-        },
-        "baseUrl": {
-            "type": "string",
-            "value": "[variables('scenarioUrl')]"
-        },
-        "scriptUrl": {
-            "type": "string",
-            "value": "[concat(variables('scenarioUrl'), '/artifacts/installArcAgent.ps1')]"
-        }
-    }
+    "outputs": {}
 }
