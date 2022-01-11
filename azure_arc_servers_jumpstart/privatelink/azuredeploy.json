@@ -1,0 +1,138 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2018-05-01/subscriptionDeploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string",
+            "defaultValue": "[deployment().location]",
+            "metadata": {
+                "description": "Location for the JumpStart scenario deployment"
+            }
+        },
+        "azureRgName": {
+            "type": "string",
+            "defaultValue": "Azure-RG",
+            "metadata": {
+                "description": "Name for the Resource Group which will imitate an Azure cloud environment"
+            }
+        },
+        "onPremRgName": {
+            "type": "string",
+            "defaultValue": "OnPrem-RG",
+            "metadata": {
+                "description": "Name for the Resource Group which will imitate an on-premises environment"
+            }
+        },
+        "cloudVNetName": {
+            "type": "string",
+            "defaultValue": "Azure-NET",
+            "metadata": {
+                "description": "Name of the first VNET."
+            }
+        },
+        "cloudVNetPrefix": {
+            "type": "string",
+            "defaultValue": "172.16.0.0/24",
+            "metadata": {
+                "description": "Address space for the first VNET."
+            }
+        },
+        "cloudSubnetName": {
+            "type": "string",
+            "defaultValue": "Resources",
+            "metadata": {
+                "description": "Name of the first subnet in the first VNET. Please note, an additional subnet called GatewaySubnet will be created where the VirtualNetworkGateway will be deployed. The name of that subnet must not be changed from GatewaySubnet."
+            }
+        },
+        "gatewaySubnetPrefix": {
+            "type": "string",
+            "defaultValue": "172.16.0.0/26",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "cloudSubnetPrefix": {
+            "type": "string",
+            "defaultValue": "172.16.0.64/26",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "cloudGatewayName": {
+            "type": "string",
+            "defaultValue": "AzureGateway",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "githubAccount": {
+            "type": "string",
+            "defaultValue": "microsoft",
+            "metadata": {
+                "description": "GitHub Account"
+            }
+        },
+        "githubBranch": {
+            "type": "string",
+            "defaultValue": "main",
+            "metadata": {
+                "description": "GitHub Branch"
+            }
+        }
+    },
+    "variables": {
+        "scenarioUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_arc_servers_jumpstart/privatelink/')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "2021-04-01",
+            "name": "[parameters('azureRgName')]",
+            "location": "[parameters('location')]",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Resources/resourceGroups",
+            "apiVersion": "2021-04-01",
+            "name": "[parameters('onPremRgName')]",
+            "location": "[parameters('location')]",
+            "properties": {}
+        },
+        {
+            "type": "Microsoft.Resources/deployments",
+            "apiVersion": "2021-04-01",
+            "name": "AzureDeployment",
+            "resourceGroup": "[parameters('azureRgName')]",
+            "properties": {
+                "expressionEvaluationOptions": {
+                    "scope": "Inner"
+                },
+                "templateLink": {
+                    "relativePath": "[uri(variables('scenarioUrl'), 'nested/cloud.json')]"
+                },
+                "mode": "Incremental",
+                "parameters": {
+                    "cloudVNetName": {
+                        "value": "[parameters('cloudVNetName')]"
+                    },
+                    "cloudVNetPrefix": {
+                        "value": "[parameters('cloudVNetPrefix')]"
+                    },
+                    "cloudSubnetName": {
+                        "value": "[parameters('cloudSubnetName')]"
+                    },
+                    "gatewaySubnetPrefix": {
+                        "value": "[parameters('gatewaySubnetPrefix')]"
+                    },
+                    "cloudSubnetPrefix": {
+                        "value": "[parameters('cloudSubnetPrefix')]"
+                    },
+                    "cloudGatewayName": {
+                        "value": "[parameters('cloudGatewayName')]"
+                    }
+                }
+            }
+        }
+    ],
+    "outputs": {}
+}

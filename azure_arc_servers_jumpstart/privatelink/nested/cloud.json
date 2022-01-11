@@ -1,0 +1,148 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "cloudVNetName": {
+            "type": "string",
+            "defaultValue": "Azure-NET",
+            "metadata": {
+                "description": "Name of the first VNET."
+            }
+        },
+        "cloudVNetPrefix": {
+            "type": "string",
+            "defaultValue": "172.16.0.0/24",
+            "metadata": {
+                "description": "Address space for the first VNET."
+            }
+        },
+        "cloudSubnetName": {
+            "type": "string",
+            "defaultValue": "Resources",
+            "metadata": {
+                "description": "Name of the first subnet in the first VNET. Please note, an additional subnet called GatewaySubnet will be created where the VirtualNetworkGateway will be deployed. The name of that subnet must not be changed from GatewaySubnet."
+            }
+        },
+        "gatewaySubnetPrefix": {
+            "type": "string",
+            "defaultValue": "172.16.0.0/26",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "cloudSubnetPrefix": {
+            "type": "string",
+            "defaultValue": "172.16.0.64/26",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        },
+        "cloudGatewayName": {
+            "type": "string",
+            "defaultValue": "AzureGateway",
+            "metadata": {
+                "description": "The prefix for the first subnet in the first VNET."
+            }
+        }
+    },
+    "variables": {
+        "identityName": "deploy-identity",
+        "roleAssignmentName": "[guid(resourceGroup().id)]",
+        "gwPublicIPName": "[concat(parameters('cloudGatewayName'), '-PIP')]",
+        "contributorRole": "[resourceId('Microsoft.Authorization/roleDefinitions', 'b24988ac-6180-42a0-ab88-20f7382dd24c')]"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.ManagedIdentity/userAssignedIdentities",
+            "name": "[variables('identityName')]",
+            "apiVersion": "2018-11-30",
+            "location": "[resourceGroup().location]"
+        },
+        {
+            "type": "Microsoft.Authorization/roleAssignments",
+            "apiVersion": "2018-09-01-preview",
+            "name": "[variables('roleAssignmentName')]",
+            "properties": {
+                "scope": "[resourceGroup().id]",
+                "roleDefinitionId": "[variables('contributorRole')]",
+                "principalId": "[reference(resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName')), '2018-11-30').principalId]",
+                "principalType": "ServicePrincipal"
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.ManagedIdentity/userAssignedIdentities', variables('identityName'))]"
+            ]
+        },
+        {
+            "apiVersion": "2020-05-01",
+            "location": "[resourceGroup().location]",
+            "type": "Microsoft.Network/publicIPAddresses",
+            "name": "[variables('gwPublicIPName')]",
+            "properties": {
+                "publicIPAllocationMethod": "Dynamic"
+            }
+        },
+        {
+            "apiVersion": "2020-05-01",
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('cloudVNetName')]",
+            "location": "[resourceGroup().location]",
+            "properties": {
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "[parameters('cloudVNetPrefix')]"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "GatewaySubnet",
+                        "properties": {
+                            "addressPrefix": "[parameters('gatewaySubnetPrefix')]",
+                            "privateEndpointNetworkPolicies": "Disabled"
+                        }
+                    },
+                    {
+                        "name": "[parameters('cloudSubnetName')]",
+                        "properties": {
+                            "addressPrefix": "[parameters('cloudSubnetPrefix')]",
+                            "privateEndpointNetworkPolicies": "Disabled"
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "apiVersion": "2020-05-01",
+            "location": "[resourceGroup().location]",
+            "type": "Microsoft.Network/virtualNetworkGateways",
+            "name": "[parameters('cloudGatewayName')]",
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "properties": {
+                            "privateIPAllocationMethod": "Dynamic",
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('cloudVNetName'), 'GatewaySubnet')]"
+                            },
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses',variables('gwPublicIPName'))]"
+                            }
+                        },
+                        "name": "default"
+                    }
+                ],
+                "sku": {
+                    "name": "Basic",
+                    "tier": "Basic"
+                },
+                "gatewayType": "Vpn",
+                "vpnType": "RouteBased",
+                "enableBgp": false
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses/', variables('gwPublicIPName'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/', parameters('cloudVNetName'))]"
+            ]
+        }
+    ],
+    "outputs": {}
+}
