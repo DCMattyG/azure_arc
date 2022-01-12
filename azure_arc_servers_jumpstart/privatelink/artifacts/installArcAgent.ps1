@@ -2,7 +2,7 @@ param(
     [string]$Token,
     [string]$Location,
     [string]$SubscriptionId,
-    [string]$ResourceGroupName
+    [string]$ResourceGroup
 )
 
 Start-Transcript -Path "C:\Temp\installArcAgent.log"
@@ -29,7 +29,7 @@ if($LASTEXITCODE -ne 0) {
     --access-token $Token `
     --location $Location `
     --subscription-id $SubscriptionId `
-    --resource-group $ResourceGroupName `
+    --resource-group $ResourceGroup `
     --cloud "AzureCloud" `
     --tags "Project=jumpstart_arcbox"
 

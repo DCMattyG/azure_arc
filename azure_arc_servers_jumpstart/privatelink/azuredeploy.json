@@ -566,7 +566,7 @@
                                     "fileUris": [
                                         "[uri(parameters('scenarioUrl'), 'artifacts/installArcAgent.ps1')]"
                                     ],
-                                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Bypass -File installArcAgent.ps1', ' -Token ', parameters('token'), ' -Location ', resourceGroup().location, ' -SubscriptionId ', subscription().subscriptionId, ' -ResourceGroupName ', parameters('azureRgName'))]"
+                                    "commandToExecute": "[concat('powershell.exe -ExecutionPolicy Bypass -File installArcAgent.ps1', ' -Token ', parameters('token'), ' -Location ', resourceGroup().location, ' -SubscriptionId ', subscription().subscriptionId, ' -ResourceGroup ', parameters('azureRgName'))]"
                                 }
                             }
                         }
