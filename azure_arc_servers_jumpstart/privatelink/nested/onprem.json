@@ -6,83 +6,83 @@
             "type": "string",
             "defaultValue": "ArcDemo-VM",
             "metadata": {
-                "description": "Username for the Virtual Machine."
+                "description": "Name of the Virtual Machine that will be onboarded to Arc."
             }
         },
         "vmSize": {
             "type": "string",
             "defaultValue": "Standard_D4s_v4",
             "metadata": {
-                "description": "Size of the Virtual Machine"
+                "description": "Size of the Arc-enabled virtual machine."
             }
         },
         "adminUsername": {
             "type": "string",
             "defaultValue": "arcadmin",
             "metadata": {
-                "description": "Username for the Virtual Machine."
+                "description": "Admin username for the Arc-enabled virtual machine."
             }
         },
         "adminPassword": {
             "type": "securestring",
             "metadata": {
-                "description": "SSH Key or password for the Virtual Machine. SSH key is recommended."
+                "description": "SSH key or password for the Arc-enabled virtual Machine. SSH key is recommended for Linux."
             }
         },
         "onPremVNetName": {
             "type": "string",
             "defaultValue": "OnPrem-NET",
             "metadata": {
-                "description": "Name of the first VNET."
+                "description": "Name of the vNET for the on-premises environment."
             }
         },
         "onPremVNetPrefix": {
             "type": "string",
             "defaultValue": "192.168.0.0/24",
             "metadata": {
-                "description": "Address space for the first VNET."
+                "description": "CIDR prefix for the on-premises vNET."
             }
         },
         "onPremGatewaySubnetPrefix": {
             "type": "string",
             "defaultValue": "192.168.0.0/26",
             "metadata": {
-                "description": "The prefix for the first subnet in the first VNET."
+                "description": "CIDR prefix for the on-premises Gateway subnet."
             }
         },
         "onPremBastionSubnetPrefix": {
             "type": "string",
             "defaultValue": "192.168.0.64/26",
             "metadata": {
-                "description": "The prefix for the first subnet in the first VNET."
+                "description": "CIDR prefix for the on-premises Bastion subnet."
             }
         },
         "onPremSubnetName": {
             "type": "string",
             "defaultValue": "default",
             "metadata": {
-                "description": "Name of the first subnet in the first VNET. Please note, an additional subnet called GatewaySubnet will be created where the VirtualNetworkGateway will be deployed. The name of that subnet must not be changed from GatewaySubnet."
+                "description": "Name of the subnet for the on-premises resources."
             }
         },
         "onPremSubnetPrefix": {
             "type": "string",
             "defaultValue": "192.168.0.128/26",
             "metadata": {
-                "description": "The prefix for the first subnet in the first VNET."
+                "description": "CIDR prefix for the on-premises resources subnet."
             }
         },
         "onPremGatewayName": {
             "type": "string",
             "defaultValue": "OnPremGateway",
             "metadata": {
-                "description": "The prefix for the first subnet in the first VNET."
+                "description": "The name of the Virtual Network Gateway 'on-premises'."
             }
         },
         "onPremBastionName": {
             "type": "string",
             "defaultValue": "OnPremBastion",
             "metadata": {
-                "description": "The prefix for the first subnet in the first VNET."
+                "description": "The name of the Bastion host that will simulate secure access to the on-premises environment."
             }
         }
     },

@@ -6,55 +6,55 @@
             "type": "string",
             "defaultValue": "sqladmin",
             "metadata": {
-                "description": "Admin login for the SQL Server"
+                "description": "Admin login for the SQL Server."
             }
         },
         "sqlAdminPassword": {
             "type": "securestring",
             "metadata": {
-                "description": "Password for the SQL Server"
+                "description": "Password for the SQL Server."
             }
         },
         "cloudVNetName": {
             "type": "string",
             "defaultValue": "Azure-NET",
             "metadata": {
-                "description": "Name of the first VNET."
+                "description": "Name of the vNET for the cloud environment."
             }
         },
         "cloudVNetPrefix": {
             "type": "string",
             "defaultValue": "172.16.0.0/24",
             "metadata": {
-                "description": "Address space for the first VNET."
+                "description": "CIDR prefix for the cloud vNET."
             }
         },
         "cloudGatewaySubnetPrefix": {
             "type": "string",
             "defaultValue": "172.16.0.0/26",
             "metadata": {
-                "description": "The prefix for the first subnet in the first VNET."
+                "description": "CIDR prefix for the cloud Gateway subnet."
             }
         },
         "cloudSubnetName": {
             "type": "string",
             "defaultValue": "Resources",
             "metadata": {
-                "description": "Name of the first subnet in the first VNET. Please note, an additional subnet called GatewaySubnet will be created where the VirtualNetworkGateway will be deployed. The name of that subnet must not be changed from GatewaySubnet."
+                "description": "Name of the subnet for the cloud resources."
             }
         },
         "cloudSubnetPrefix": {
             "type": "string",
             "defaultValue": "172.16.0.64/26",
             "metadata": {
-                "description": "The prefix for the first subnet in the first VNET."
+                "description": "CIDR prefix for the cloud resources subnet."
             }
         },
         "cloudGatewayName": {
             "type": "string",
             "defaultValue": "AzureGateway",
             "metadata": {
-                "description": "The prefix for the first subnet in the first VNET."
+                "description": "The name of the Virtual Network Gateway in 'Azure'."
             }
         }
     },
