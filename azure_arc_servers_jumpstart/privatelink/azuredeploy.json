@@ -576,10 +576,5 @@
             }
         }
     ],
-    "outputs": {
-        "token": {
-            "type": "string",
-            "value": "[reference('GetAccessToken').outputs.token.value]"
-        }
-    }
+    "outputs": {}
 }
