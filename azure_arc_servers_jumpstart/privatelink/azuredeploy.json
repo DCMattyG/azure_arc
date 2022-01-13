@@ -184,7 +184,9 @@
         }
     },
     "variables": {
-        "scenarioUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_arc_servers_jumpstart/privatelink/')]"
+        "scenarioUrl": "[concat('https://raw.githubusercontent.com/', parameters('githubAccount'), '/azure_arc/', parameters('githubBranch'), '/azure_arc_servers_jumpstart/privatelink/')]",
+        "cloudUrl": "[uri(variables('scenarioUrl'),'nested/cloud.json')]",
+        "onPremUrl": "[uri(variables('scenarioUrl'),'nested/onprem.json')]"
     },
     "resources": [
         {
@@ -214,7 +216,7 @@
                     "scope": "Inner"
                 },
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/DCMattyG/azure_arc/privatelink/azure_arc_servers_jumpstart/privatelink/nested/cloud.json"
+                    "uri": "[variables('cloudUrl')]"
                 },
                 "mode": "Incremental",
                 "parameters": {
@@ -258,7 +260,7 @@
                     "scope": "Inner"
                 },
                 "templateLink": {
-                    "uri": "https://raw.githubusercontent.com/DCMattyG/azure_arc/privatelink/azure_arc_servers_jumpstart/privatelink/nested/onprem.json"
+                    "uri": "[variables('onPremUrl')]"
                 },
                 "mode": "Incremental",
                 "parameters": {
