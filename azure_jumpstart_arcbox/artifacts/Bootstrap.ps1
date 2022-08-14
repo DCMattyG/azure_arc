@@ -39,6 +39,15 @@ $ErrorActionPreference = 'SilentlyContinue'
 Invoke-WebRequest ($templateBaseUrl + "artifacts/PSProfile.ps1") -OutFile $PsHome\Profile.ps1
 .$PsHome\Profile.ps1
 
+# Required for CLI commands
+Write-Header "Az CLI Login"
+# az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
+az login --identity
+
+# Loading Environment Variables
+Write-Host "Loading environment variables"
+Load-Variables($Env:appConfigUri)
+
 # Extending C:\ partition to the maximum size
 Write-Host "Extending C:\ partition to the maximum size"
 Resize-Partition -DriveLetter C -Size $(Get-PartitionSupportedSize -DriveLetter C).SizeMax
