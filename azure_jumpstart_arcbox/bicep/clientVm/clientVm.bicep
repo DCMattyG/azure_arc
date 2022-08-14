@@ -152,7 +152,7 @@ resource vmBootstrap 'Microsoft.Compute/virtualMachines/extensions@2022-03-01' =
       fileUris: [
         uri(templateBaseUrl, 'artifacts/Bootstrap.ps1')
       ]
-      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -appConfigUri ${appConfigUri} -keyVaultUri ${keyVaultUri} -templateBaseUrl ${templateBaseUrl}'
+      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -flavor ${flavor} -appConfigUri ${appConfigUri} -keyVaultUri ${keyVaultUri} -templateBaseUrl ${templateBaseUrl}'
     }
   }
 }

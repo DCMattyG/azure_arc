@@ -17,9 +17,7 @@ function Load-Variables {
         $appConfigUri
     )
 
-    $appConfigEndpoint = "http://$appConfigUri"
-
-    $data = $(az appconfig kv list --endpoint $appConfigEndpoint --auth-mode login --resolve-keyvault | ConvertFrom-Json)
+    $data = $(az appconfig kv list --endpoint $appConfigUri --auth-mode login --resolve-keyvault | ConvertFrom-Json)
 
     $data | ForEach-Object { [Environment]::SetEnvironmentVariable($_.key, $_.value) }
 }

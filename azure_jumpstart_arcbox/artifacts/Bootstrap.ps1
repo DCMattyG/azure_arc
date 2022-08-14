@@ -1,9 +1,12 @@
 param (
+    [string]$flavor,
     [string]$appConfigUri,
+    [string]$keyVaultUri,
     [string]$templateBaseUrl
 )
 
 [System.Environment]::SetEnvironmentVariable('appConfigUri', $appConfigUri,[System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('keyVaultUri', $keyVaultUri,[System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('templateBaseUrl', $templateBaseUrl,[System.EnvironmentVariableTarget]::Machine)
 
 # Creating ArcBox path
@@ -159,27 +162,27 @@ if ($flavor -eq "Full" -Or $flavor -eq "ITPro") {
     # Creating scheduled task for ArcServersLogonScript.ps1
     $Trigger = New-ScheduledTaskTrigger -AtLogOn
     $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument $Env:ArcBoxDir\ArcServersLogonScript.ps1
-    Register-ScheduledTask -TaskName "ArcServersLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
+    Register-ScheduledTask -TaskName "ArcServersLogonScript" -Trigger $Trigger -User $Env:adminUsername -Action $Action -RunLevel "Highest" -Force
 }
 
 if ($flavor -eq "Full") {
     # Creating scheduled task for DataServicesLogonScript.ps1
     $Trigger = New-ScheduledTaskTrigger -AtLogOn 
     $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument $Env:ArcBoxDir\DataServicesLogonScript.ps1
-    Register-ScheduledTask -TaskName "DataServicesLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
+    Register-ScheduledTask -TaskName "DataServicesLogonScript" -Trigger $Trigger -User $Env:adminUsername -Action $Action -RunLevel "Highest" -Force
 }
 
 if ($flavor -eq "DevOps") {
     # Creating scheduled task for DevOpsLogonScript.ps1
     $Trigger = New-ScheduledTaskTrigger -AtLogOn 
     $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument $Env:ArcBoxDir\DevOpsLogonScript.ps1
-    Register-ScheduledTask -TaskName "DevOpsLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
+    Register-ScheduledTask -TaskName "DevOpsLogonScript" -Trigger $Trigger -User $Env:adminUsername -Action $Action -RunLevel "Highest" -Force
 }
 
 # Creating scheduled task for MonitorWorkbookLogonScript.ps1
 $Trigger = New-ScheduledTaskTrigger -AtLogOn
 $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument $Env:ArcBoxDir\MonitorWorkbookLogonScript.ps1
-Register-ScheduledTask -TaskName "MonitorWorkbookLogonScript" -Trigger $Trigger -User $adminUsername -Action $Action -RunLevel "Highest" -Force
+Register-ScheduledTask -TaskName "MonitorWorkbookLogonScript" -Trigger $Trigger -User $Env:adminUsername -Action $Action -RunLevel "Highest" -Force
 
 # Disabling Windows Server Manager Scheduled Task
 Get-ScheduledTask -TaskName ServerManager | Disable-ScheduledTask
