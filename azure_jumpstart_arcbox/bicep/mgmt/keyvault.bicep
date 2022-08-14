@@ -18,7 +18,7 @@ param azdataPassword string = 'ArcPassword123!!'
 param registryPassword string = 'registrySecret'
 
 var namePrefix = 'ArcBox'
-var keyVaultName = '${namePrefix}-kv-${uniqueString(resourceGroup().id)}'
+var keyVaultName = '${namePrefix}-key-${uniqueString(resourceGroup().id)}'
 
 // KeyVault Secret Permissions Assigned to Managed Identity
 var secretsPermissions = [
@@ -29,7 +29,8 @@ resource keyVault 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   name: keyVaultName
   location: location
   properties: {
-    enablePurgeProtection: true
+    enableSoftDelete: false
+    enablePurgeProtection: false
     tenantId: subscription().tenantId
     accessPolicies: [
       {
