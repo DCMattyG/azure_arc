@@ -7,8 +7,9 @@ Start-Transcript -Path $ArcBoxLogsDir\MonitorWorkbookLogonScript.log
 # az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
 az login --identity
 
-# Load Environment Variables
-Load-Variables($Env:appConfigUri)
+# Loading Environment Variables
+Write-Host "Loading environment variables"
+Load-Variables -appConfigUri $Env:appConfigUri
 
 # Configure mgmtMonitorWorkbook.json template with subscription ID and resource group values
 Write-Host "Configuring Azure Monitor Workbook ARM template."

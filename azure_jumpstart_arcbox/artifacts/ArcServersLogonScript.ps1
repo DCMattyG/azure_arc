@@ -21,7 +21,8 @@ Write-Header "Az CLI Login"
 az login --identity
 
 # Loading Environment Variables
-Load-Variables($Env:appConfigUri)
+Write-Host "Loading environment variables"
+Load-Variables -appConfigUri $Env:appConfigUri
 
 # Register Azure providers
 # Write-Header "Registering Providers"
