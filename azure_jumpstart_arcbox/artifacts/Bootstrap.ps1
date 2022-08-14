@@ -49,7 +49,11 @@ az login --identity
 
 # Loading Environment Variables
 Write-Header "Load Env Vars"
-Load-Variables -AppConfigUri $appConfigUri -Debug
+Load-Variables -AppConfigUri $appConfigUri
+
+Write-Host "*****************************"
+Get-Item -Path Env:
+Write-Host "*****************************"
 
 # Extending C:\ partition to the maximum size
 Write-Host "Extending C:\ partition to the maximum size"

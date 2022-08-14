@@ -26,6 +26,7 @@ function Load-Variables {
     $data = $(az appconfig kv list --endpoint $appConfigUri --auth-mode login --resolve-keyvault | ConvertFrom-Json)
 
     $data | ForEach-Object {
+        Write-Host "Loaded { $($_.key): $($_.value) }"
         Write-Debug "Loaded { $($_.key): $($_.value) }"
 
         # [Environment]::SetEnvironmentVariable($_.key, $_.value)
