@@ -12,14 +12,24 @@ function Write-Header {
 }
 
 function Load-Variables {
+    [CmdletBinding()]
     param (
+        [Parameter(Mandatory=$true)]
         [string]
-        $appConfigUri
+        $AppConfigUri
     )
+
+    if($PSBoundParameters.Debug.IsPresent) {
+        $DebugPreference = "Continue"
+    }
 
     $data = $(az appconfig kv list --endpoint $appConfigUri --auth-mode login --resolve-keyvault | ConvertFrom-Json)
 
-    $data | ForEach-Object { [Environment]::SetEnvironmentVariable($_.key, $_.value) }
+    $data | ForEach-Object {
+        Write-Debug "Loaded { $($_.key): $($_.value) }"
+
+        [Environment]::SetEnvironmentVariable($_.key, $_.value)
+    }
 }
 
 function exec
