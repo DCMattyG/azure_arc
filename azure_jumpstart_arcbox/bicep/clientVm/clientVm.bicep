@@ -43,6 +43,9 @@ param managedIdentityId string
 @description('App Config URI')
 param appConfigUri string
 
+@description('KeyVault URI')
+param keyVaultUri string
+
 var bastionName = 'ArcBox-Bastion'
 var publicIpAddressName = deployBastion == false ? '${vmName}-PIP' : '${bastionName}-PIP'
 var networkInterfaceName = '${vmName}-NIC'
@@ -149,7 +152,7 @@ resource vmBootstrap 'Microsoft.Compute/virtualMachines/extensions@2022-03-01' =
       fileUris: [
         uri(templateBaseUrl, 'artifacts/Bootstrap.ps1')
       ]
-      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -appConfigUri ${appConfigUri}'
+      commandToExecute: 'powershell.exe -ExecutionPolicy Bypass -File Bootstrap.ps1 -appConfigUri ${appConfigUri} -keyVaultUri ${keyVaultUri} -templateBaseUrl ${templateBaseUrl}'
     }
   }
 }

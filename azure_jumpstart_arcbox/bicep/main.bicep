@@ -112,6 +112,7 @@ module clientVmDeployment 'clientVm/clientVm.bicep' = {
     location: location
     managedIdentityId: managedIdentityDeployment.outputs.id
     appConfigUri: appConfigDeployment.outputs.appConfigUri
+    keyVaultUri: keyvaultDeployment.outputs.keyVaultUri
   }
 }
 

@@ -1,8 +1,10 @@
 param (
-    [string]$appConfigUri
+    [string]$appConfigUri,
+    [string]$templateBaseUrl
 )
 
 [System.Environment]::SetEnvironmentVariable('appConfigUri', $appConfigUri,[System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('templateBaseUrl', $templateBaseUrl,[System.EnvironmentVariableTarget]::Machine)
 
 # Creating ArcBox path
 Write-Output "Creating ArcBox path"
