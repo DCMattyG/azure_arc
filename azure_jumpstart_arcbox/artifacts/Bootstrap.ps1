@@ -1,5 +1,4 @@
 param (
-    [string]$flavor,
     [string]$appConfigUri,
     [string]$keyVaultUri,
     [string]$templateBaseUrl
@@ -45,7 +44,7 @@ Write-Header "Az CLI Login"
 az login --identity
 
 # Loading Environment Variables
-Write-Host "Loading environment variables"
+Write-Header "Load Env Vars"
 Load-Variables -appConfigUri $Env:appConfigUri
 
 # Extending C:\ partition to the maximum size
@@ -96,11 +95,11 @@ Invoke-WebRequest ($templateBaseUrl + "../tests/GHActionDeploy.ps1") -OutFile "$
 Invoke-WebRequest ($templateBaseUrl + "../tests/OpenSSHDeploy.ps1") -OutFile "$Env:ArcBoxDir\OpenSSHDeploy.ps1"
 
 # Workbook template
-if ($flavor -eq "ITPro") {
+if ($Env:flavor -eq "ITPro") {
     Write-Host "Fetching Workbook Template Artifact for ITPro"
     Invoke-WebRequest ($templateBaseUrl + "artifacts/mgmtMonitorWorkbookITPro.json") -OutFile $Env:ArcBoxDir\mgmtMonitorWorkbook.json
 }
-elseif ($flavor -eq "DevOps") {
+elseif ($Env:flavor -eq "DevOps") {
     Write-Host "Fetching Workbook Template Artifact for DevOps"
     Invoke-WebRequest ($templateBaseUrl + "artifacts/mgmtMonitorWorkbookDevOps.json") -OutFile $Env:ArcBoxDir\mgmtMonitorWorkbook.json
 }
@@ -110,7 +109,7 @@ else {
 }
 
 # ITPro
-if ($flavor -eq "Full" -Or $flavor -eq "ITPro") {
+if ($Env:flavor -eq "Full" -Or $Env:flavor -eq "ITPro") {
     Write-Host "Fetching Artifacts for ITPro Flavor"
     Invoke-WebRequest ($templateBaseUrl + "artifacts/ArcServersLogonScript.ps1") -OutFile $Env:ArcBoxDir\ArcServersLogonScript.ps1
     Invoke-WebRequest ($templateBaseUrl + "artifacts/installArcAgent.ps1") -OutFile $Env:ArcBoxDir\agentScript\installArcAgent.ps1
@@ -123,7 +122,7 @@ if ($flavor -eq "Full" -Or $flavor -eq "ITPro") {
 }
 
 # DevOps
-if ($flavor -eq "DevOps") {
+if ($Env:flavor -eq "DevOps") {
     Write-Host "Fetching Artifacts for DevOps Flavor"
     Invoke-WebRequest ($templateBaseUrl + "artifacts/DevOpsLogonScript.ps1") -OutFile $Env:ArcBoxDir\DevOpsLogonScript.ps1
     Invoke-WebRequest ($templateBaseUrl + "artifacts/BookStoreLaunch.ps1") -OutFile $Env:ArcBoxDir\BookStoreLaunch.ps1
@@ -138,7 +137,7 @@ if ($flavor -eq "DevOps") {
 }
 
 # Full
-if ($flavor -eq "Full") {
+if ($Env:flavor -eq "Full") {
     Write-Host "Fetching Artifacts for Full Flavor"
     Invoke-WebRequest "https://azuredatastudio-update.azurewebsites.net/latest/win32-x64-archive/stable" -OutFile $Env:ArcBoxDir\azuredatastudio.zip
     Invoke-WebRequest "https://aka.ms/azdata-msi" -OutFile $Env:ArcBoxDir\AZDataCLI.msi
@@ -159,7 +158,7 @@ if ($flavor -eq "Full") {
 New-Item -path alias:kubectl -value 'C:\ProgramData\chocolatey\lib\kubernetes-cli\tools\kubernetes\client\bin\kubectl.exe'
 New-Item -path alias:azdata -value 'C:\Program Files (x86)\Microsoft SDKs\Azdata\CLI\wbin\azdata.cmd'
 
-if ($flavor -eq "Full") {
+if ($Env:flavor -eq "Full") {
     Write-Header "Installing Azure Data Studio"
     Expand-Archive $Env:ArcBoxDir\azuredatastudio.zip -DestinationPath 'C:\Program Files\Azure Data Studio'
     Start-Process msiexec.exe -Wait -ArgumentList "/I $Env:ArcBoxDir\AZDataCLI.msi /quiet"
@@ -167,21 +166,21 @@ if ($flavor -eq "Full") {
 
 Write-Header "Configuring Logon Scripts"
 
-if ($flavor -eq "Full" -Or $flavor -eq "ITPro") {
+if ($Env:flavor -eq "Full" -Or $Env:flavor -eq "ITPro") {
     # Creating scheduled task for ArcServersLogonScript.ps1
     $Trigger = New-ScheduledTaskTrigger -AtLogOn
     $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument $Env:ArcBoxDir\ArcServersLogonScript.ps1
     Register-ScheduledTask -TaskName "ArcServersLogonScript" -Trigger $Trigger -User $Env:adminUsername -Action $Action -RunLevel "Highest" -Force
 }
 
-if ($flavor -eq "Full") {
+if ($Env:flavor -eq "Full") {
     # Creating scheduled task for DataServicesLogonScript.ps1
     $Trigger = New-ScheduledTaskTrigger -AtLogOn 
     $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument $Env:ArcBoxDir\DataServicesLogonScript.ps1
     Register-ScheduledTask -TaskName "DataServicesLogonScript" -Trigger $Trigger -User $Env:adminUsername -Action $Action -RunLevel "Highest" -Force
 }
 
-if ($flavor -eq "DevOps") {
+if ($Env:flavor -eq "DevOps") {
     # Creating scheduled task for DevOpsLogonScript.ps1
     $Trigger = New-ScheduledTaskTrigger -AtLogOn 
     $Action = New-ScheduledTaskAction -Execute "PowerShell.exe" -Argument $Env:ArcBoxDir\DevOpsLogonScript.ps1
@@ -207,5 +206,5 @@ Install-WindowsFeature -Name Hyper-V -IncludeAllSubFeature -IncludeManagementToo
 # Clean up Bootstrap.log
 Write-Host "Clean up Bootstrap.log"
 Stop-Transcript
-$logSuppress = Get-Content $Env:ArcBoxLogsDir\Bootstrap.log | Where { $_ -notmatch "Host Application: powershell.exe" } 
+$logSuppress = Get-Content $Env:ArcBoxLogsDir\Bootstrap.log | Where-Object { $_ -notmatch "Host Application: powershell.exe" } 
 $logSuppress | Set-Content $Env:ArcBoxLogsDir\Bootstrap.log -Force
