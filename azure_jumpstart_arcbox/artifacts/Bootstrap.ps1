@@ -76,6 +76,11 @@ foreach ($app in $appsToInstall)
     & choco install $app /y -Force | Write-Output
 }
 
+Write-Host "Az CLI Test..."
+Write-Host "*****************************"
+az
+Write-Host "*****************************"
+
 # Required for CLI commands
 Write-Header "Az CLI Login"
 # az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId

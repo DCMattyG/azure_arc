@@ -20,6 +20,7 @@ function Load-Variables {
     )
 
     Write-Host "Entering Load-Variables..."
+    Write-Host "AppConfigUri: $AppConfigUri"
 
     if($PSBoundParameters.Debug.IsPresent) {
         Write-Host "Debug enabled..."
