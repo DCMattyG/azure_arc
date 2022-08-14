@@ -19,11 +19,23 @@ function Load-Variables {
         $AppConfigUri
     )
 
+    Write-Host "Entering Load-Variables..."
+
     if($PSBoundParameters.Debug.IsPresent) {
+        Write-Host "Debug enabled..."
         $DebugPreference = "Continue"
     }
 
-    $data = $(az appconfig kv list --endpoint $appConfigUri --auth-mode login --resolve-keyvault | ConvertFrom-Json)
+    Write-Host "Fetching values from App Config..."
+
+    $data = $(az appconfig kv list --endpoint $AppConfigUri --auth-mode login --resolve-keyvault | ConvertFrom-Json)
+
+    Write-Host "DATA:"
+    Write-Host "*****************************"
+    Write-Host $data
+    Write-Host "*****************************"
+
+    Write-Host "Setting process variables..."
 
     $data | ForEach-Object {
         Write-Host "Loaded { $($_.key): $($_.value) }"
