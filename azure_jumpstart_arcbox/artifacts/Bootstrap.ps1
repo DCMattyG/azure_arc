@@ -8,10 +8,6 @@ param (
 [System.Environment]::SetEnvironmentVariable('keyVaultUri', $keyVaultUri, [System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('templateBaseUrl', $templateBaseUrl, [System.EnvironmentVariableTarget]::Machine)
 
-Write-Host "AppConfigURI: $appConfigUri"
-Write-Host "KeyVaultURI: $keyVaultUri"
-Write-Host "TemplateBaseUrl: $templateBaseUrl"
-
 # Creating ArcBox path
 Write-Output "Creating ArcBox path"
 $Env:ArcBoxDir = "C:\ArcBox"
@@ -37,6 +33,10 @@ New-Item -Path $Env:agentScript -ItemType directory -Force
 Start-Transcript -Path $Env:ArcBoxLogsDir\Bootstrap.log
 
 $ErrorActionPreference = 'SilentlyContinue'
+
+Write-Host "AppConfigURI: $appConfigUri"
+Write-Host "KeyVaultURI: $keyVaultUri"
+Write-Host "TemplateBaseUrl: $templateBaseUrl"
 
 # Copy PowerShell Profile and Reload
 Invoke-WebRequest ($templateBaseUrl + "artifacts/PSProfile.ps1") -OutFile $PsHome\Profile.ps1
