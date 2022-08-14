@@ -4,7 +4,11 @@ $ArcBoxLogsDir = "$ArcBoxDir\Logs"
 Start-Transcript -Path $ArcBoxLogsDir\MonitorWorkbookLogonScript.log
 
 # Required for CLI commands
-az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
+# az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
+az login --identity
+
+# Load Environment Variables
+Load-Variables($Env:appConfigUri)
 
 # Configure mgmtMonitorWorkbook.json template with subscription ID and resource group values
 Write-Host "Configuring Azure Monitor Workbook ARM template."

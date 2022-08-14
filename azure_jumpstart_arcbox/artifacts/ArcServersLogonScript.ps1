@@ -17,14 +17,18 @@ $Env:AZURE_CONFIG_DIR = $cliDir.FullName
 
 # Required for CLI commands
 Write-Header "Az CLI Login"
-az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
+# az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
+az login --identity
+
+# Loading Environment Variables
+Load-Variables($Env:appConfigUri)
 
 # Register Azure providers
-Write-Header "Registering Providers"
-az provider register --namespace Microsoft.HybridCompute --wait
-az provider register --namespace Microsoft.HybridConnectivity --wait
-az provider register --namespace Microsoft.GuestConfiguration --wait
-az provider register --namespace Microsoft.AzureArcData --wait
+# Write-Header "Registering Providers"
+# az provider register --namespace Microsoft.HybridCompute --wait
+# az provider register --namespace Microsoft.HybridConnectivity --wait
+# az provider register --namespace Microsoft.GuestConfiguration --wait
+# az provider register --namespace Microsoft.AzureArcData --wait
 
 # Install and configure DHCP service (used by Hyper-V nested VMs)
 Write-Header "Configuring DHCP Service"

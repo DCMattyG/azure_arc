@@ -1,16 +1,16 @@
-@description('RSA public key used for securing SSH access to ArcBox resources')
-@secure()
-param sshRSAPublicKey string
+// @description('RSA public key used for securing SSH access to ArcBox resources')
+// @secure()
+// param sshRSAPublicKey string
 
-@description('Azure service principal client id')
-param spnClientId string
+// @description('Azure service principal client id')
+// param spnClientId string
 
-@description('Azure service principal client secret')
-@secure()
-param spnClientSecret string
+// @description('Azure service principal client secret')
+// @secure()
+// param spnClientSecret string
 
-@description('Azure AD tenant id for your service principal')
-param spnTenantId string
+// @description('Azure AD tenant id for your service principal')
+// param spnTenantId string
 
 @description('Username for Windows account')
 param windowsAdminUsername string
@@ -48,55 +48,38 @@ var templateBaseUrl = 'https://raw.githubusercontent.com/${githubAccount}/azure_
 
 var location = resourceGroup().location
 
-module ubuntuCAPIDeployment 'kubernetes/ubuntuCapi.bicep' = if (flavor == 'Full' || flavor == 'DevOps') {
-  name: 'ubuntuCAPIDeployment'
+module managedIdentityDeployment 'mgmt/identity.bicep' = {
+  name: 'managedIdentityDeployment'
   params: {
-    sshRSAPublicKey: sshRSAPublicKey
-    spnClientId: spnClientId
-    spnClientSecret: spnClientSecret
-    spnTenantId: spnTenantId
-    stagingStorageAccountName: stagingStorageAccountDeployment.outputs.storageAccountName
-    logAnalyticsWorkspace: logAnalyticsWorkspaceName
-    templateBaseUrl: templateBaseUrl
-    subnetId: mgmtArtifactsAndPolicyDeployment.outputs.subnetId
-    deployBastion: deployBastion
-    azureLocation: location
-    flavor: flavor
+    location: location
+    managedIdentityName: 'ArcBox-Identity'
   }
 }
 
-module ubuntuRancherDeployment 'kubernetes/ubuntuRancher.bicep' = if (flavor == 'Full' || flavor == 'DevOps') {
-  name: 'ubuntuRancherDeployment'
+module keyvaultDeployment 'mgmt/keyvault.bicep' = {
+  name: 'keyvaultDeployment'
   params: {
-    sshRSAPublicKey: sshRSAPublicKey
-    spnClientId: spnClientId
-    spnClientSecret: spnClientSecret
-    spnTenantId: spnTenantId
-    stagingStorageAccountName: stagingStorageAccountDeployment.outputs.storageAccountName
-    logAnalyticsWorkspace: logAnalyticsWorkspaceName
-    templateBaseUrl: templateBaseUrl
-    subnetId: mgmtArtifactsAndPolicyDeployment.outputs.subnetId
-    deployBastion: deployBastion
-    azureLocation: location
+    location: location
+    // keyVaultName: keyVaultName
+    principalId:  managedIdentityDeployment.outputs.principalId
+    // spnClientSecret: spnClientSecret
   }
 }
 
-module clientVmDeployment 'clientVm/clientVm.bicep' = {
-  name: 'clientVmDeployment'
+module appConfigDeployment 'mgmt/appConfig.bicep' = {
+  name: 'appConfigDeployment'
   params: {
+    location: location
+    // appConfigName: appConfigName
+    principalId:  managedIdentityDeployment.outputs.principalId
     windowsAdminUsername: windowsAdminUsername
-    windowsAdminPassword: windowsAdminPassword
-    spnClientId: spnClientId
-    spnClientSecret: spnClientSecret
-    spnTenantId: spnTenantId
+    // spnClientId: spnClientId
+    // spnTenantId: spnTenantId
     workspaceName: logAnalyticsWorkspaceName
     stagingStorageAccountName: stagingStorageAccountDeployment.outputs.storageAccountName
     templateBaseUrl: templateBaseUrl
     flavor: flavor
-    subnetId: mgmtArtifactsAndPolicyDeployment.outputs.subnetId
-    deployBastion: deployBastion
     githubUser: githubUser
-    location: location
   }
 }
 
@@ -116,3 +99,51 @@ module mgmtArtifactsAndPolicyDeployment 'mgmt/mgmtArtifacts.bicep' = {
     location: location
   }
 }
+
+module clientVmDeployment 'clientVm/clientVm.bicep' = {
+  name: 'clientVmDeployment'
+  params: {
+    windowsAdminUsername: windowsAdminUsername
+    windowsAdminPassword: windowsAdminPassword
+    templateBaseUrl: templateBaseUrl
+    flavor: flavor
+    subnetId: mgmtArtifactsAndPolicyDeployment.outputs.subnetId
+    deployBastion: deployBastion
+    location: location
+    managedIdentityId: managedIdentityDeployment.outputs.id
+    appConfigUri: appConfigDeployment.outputs.appConfigUri
+  }
+}
+
+// module ubuntuCAPIDeployment 'kubernetes/ubuntuCapi.bicep' = if (flavor == 'Full' || flavor == 'DevOps') {
+//   name: 'ubuntuCAPIDeployment'
+//   params: {
+//     sshRSAPublicKey: sshRSAPublicKey
+//     spnClientId: spnClientId
+//     spnClientSecret: spnClientSecret
+//     spnTenantId: spnTenantId
+//     stagingStorageAccountName: stagingStorageAccountDeployment.outputs.storageAccountName
+//     logAnalyticsWorkspace: logAnalyticsWorkspaceName
+//     templateBaseUrl: templateBaseUrl
+//     subnetId: mgmtArtifactsAndPolicyDeployment.outputs.subnetId
+//     deployBastion: deployBastion
+//     azureLocation: location
+//     flavor: flavor
+//   }
+// }
+
+// module ubuntuRancherDeployment 'kubernetes/ubuntuRancher.bicep' = if (flavor == 'Full' || flavor == 'DevOps') {
+//   name: 'ubuntuRancherDeployment'
+//   params: {
+//     sshRSAPublicKey: sshRSAPublicKey
+//     spnClientId: spnClientId
+//     spnClientSecret: spnClientSecret
+//     spnTenantId: spnTenantId
+//     stagingStorageAccountName: stagingStorageAccountDeployment.outputs.storageAccountName
+//     logAnalyticsWorkspace: logAnalyticsWorkspaceName
+//     templateBaseUrl: templateBaseUrl
+//     subnetId: mgmtArtifactsAndPolicyDeployment.outputs.subnetId
+//     deployBastion: deployBastion
+//     azureLocation: location
+//   }
+// }
