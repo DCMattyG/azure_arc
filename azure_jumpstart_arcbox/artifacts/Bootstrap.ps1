@@ -42,19 +42,6 @@ Write-Host "TemplateBaseUrl: $templateBaseUrl"
 Invoke-WebRequest ($templateBaseUrl + "artifacts/PSProfile.ps1") -OutFile $PsHome\Profile.ps1
 .$PsHome\Profile.ps1
 
-# Required for CLI commands
-Write-Header "Az CLI Login"
-# az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
-az login --identity
-
-# Loading Environment Variables
-Write-Header "Load Env Vars"
-Load-Variables -AppConfigUri $appConfigUri
-
-Write-Host "*****************************"
-Get-Item -Path Env:
-Write-Host "*****************************"
-
 # Extending C:\ partition to the maximum size
 Write-Host "Extending C:\ partition to the maximum size"
 Resize-Partition -DriveLetter C -Size $(Get-PartitionSupportedSize -DriveLetter C).SizeMax
@@ -88,6 +75,19 @@ foreach ($app in $appsToInstall)
     Write-Host "Installing $app"
     & choco install $app /y -Force | Write-Output
 }
+
+# Required for CLI commands
+Write-Header "Az CLI Login"
+# az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
+az login --identity
+
+# Loading Environment Variables
+Write-Header "Load Env Vars"
+Load-Variables -AppConfigUri $appConfigUri
+
+Write-Host "*****************************"
+Get-Item -Path Env:
+Write-Host "*****************************"
 
 Write-Header "Fetching GitHub Artifacts"
 
