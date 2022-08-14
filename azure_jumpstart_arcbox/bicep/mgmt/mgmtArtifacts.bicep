@@ -108,7 +108,7 @@ resource networkSecurityGroup 'Microsoft.Network/networkSecurityGroups@2021-03-0
         name: 'allow_rdp_3389'
         properties: {
           priority: 1000
-          protocol: 'Any'
+          protocol: '*'
           access: 'Allow'
           direction: 'Inbound'
           sourceAddressPrefix: '*'
