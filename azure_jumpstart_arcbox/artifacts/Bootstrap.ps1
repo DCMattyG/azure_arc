@@ -8,6 +8,10 @@ param (
 [System.Environment]::SetEnvironmentVariable('keyVaultUri', $keyVaultUri, [System.EnvironmentVariableTarget]::Machine)
 [System.Environment]::SetEnvironmentVariable('templateBaseUrl', $templateBaseUrl, [System.EnvironmentVariableTarget]::Machine)
 
+Write-Host "AppConfigURI: $appConfigUri"
+Write-Host "KeyVaultURI: $keyVaultUri"
+Write-Host "TemplateBaseUrl: $templateBaseUrl"
+
 # Creating ArcBox path
 Write-Output "Creating ArcBox path"
 $Env:ArcBoxDir = "C:\ArcBox"
