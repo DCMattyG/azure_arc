@@ -28,7 +28,8 @@ function Load-Variables {
     $data | ForEach-Object {
         Write-Debug "Loaded { $($_.key): $($_.value) }"
 
-        [Environment]::SetEnvironmentVariable($_.key, $_.value)
+        # [Environment]::SetEnvironmentVariable($_.key, $_.value)
+        Set-Item -Path "env:$($_.key)" -Value $_.value
     }
 }
 

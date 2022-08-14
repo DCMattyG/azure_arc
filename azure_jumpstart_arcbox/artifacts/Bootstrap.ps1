@@ -4,9 +4,9 @@ param (
     [string]$templateBaseUrl
 )
 
-[System.Environment]::SetEnvironmentVariable('appConfigUri', $appConfigUri,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('keyVaultUri', $keyVaultUri,[System.EnvironmentVariableTarget]::Machine)
-[System.Environment]::SetEnvironmentVariable('templateBaseUrl', $templateBaseUrl,[System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('appConfigUri', $appConfigUri, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('keyVaultUri', $keyVaultUri, [System.EnvironmentVariableTarget]::Machine)
+[System.Environment]::SetEnvironmentVariable('templateBaseUrl', $templateBaseUrl, [System.EnvironmentVariableTarget]::Machine)
 
 # Creating ArcBox path
 Write-Output "Creating ArcBox path"
@@ -45,7 +45,7 @@ az login --identity
 
 # Loading Environment Variables
 Write-Header "Load Env Vars"
-Load-Variables -appConfigUri $Env:appConfigUri -Debug
+Load-Variables -AppConfigUri $Env:appConfigUri -Debug
 
 # Extending C:\ partition to the maximum size
 Write-Host "Extending C:\ partition to the maximum size"
