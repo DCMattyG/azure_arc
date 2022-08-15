@@ -177,7 +177,7 @@ if(-not $hasPermission) {
     (Get-Content -path "$agentScript\installArcAgent.ps1" -Raw) -replace '\$accessToken',"'$accessToken'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$agentScript\installArcAgentSQLModified.ps1"
 } else {
     Write-Host "Service Principal DOES have write permission to the Resource Group!"
-    (Get-Content -path "$agentScript\installArcAgentSQLSP.ps1" -Raw) -replace '\$spnClientId',"'$Env:spnClientId'" -replace '\$spnClientSecret',"'$Env:spnClientSecret'" -replace '\$myResourceGroup',"'$Env:resourceGroup'" -replace '\$spnTenantId',"'$Env:spnTenantId'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" -replace '\$logAnalyticsWorkspaceName',"'$Env:workspaceName'" | Set-Content -Path "$agentScript\installArcAgentSQLModified.ps1"
+    (Get-Content -path "$agentScript\installArcAgentSQLSP.ps1" -Raw) -replace '\$myAccessToken',"'$accessToken'" -replace '\$myResourceGroup',"'$Env:resourceGroup'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" -replace '\$logAnalyticsWorkspaceName',"'$Env:workspaceName'" -replace '\$myPrincipalId',"'$Env:vmPrincipalId'" | Set-Content -Path "$agentScript\installArcAgentSQLModified.ps1"
 }
 
 Write-Header "Copying Onboarding Scripts"

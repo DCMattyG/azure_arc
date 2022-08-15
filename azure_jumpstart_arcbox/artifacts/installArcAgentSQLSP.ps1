@@ -29,13 +29,16 @@ $servicePrincipalAppId = $spnClientId
 $servicePrincipalTenantId = $spnTenantId
 $servicePrincipalSecret = $spnClientSecret
 
+$accessToken = $myAccessToken
+$principalId = $myPrincipalId
+
 # $unattended = $servicePrincipalAppId -And $servicePrincipalTenantId -And $servicePrincipalSecret
 $unattended = $true
 
 # $azurePassword = ConvertTo-SecureString $servicePrincipalSecret -AsPlainText -Force
 # $psCred = New-Object System.Management.Automation.PSCredential($servicePrincipalAppId , $azurePassword)
 # Connect-AzAccount -Credential $psCred -TenantId $servicePrincipalTenantId -ServicePrincipal
-Connect-AzAccount -Identity
+Connect-AzAccount -AccessToken $accessToken
 Set-AzContext -Subscription $subId
 
 function Get-AzSPNRoleAssignment {
@@ -259,7 +262,7 @@ if (!$context) {
         # }
         # $pscredential = New-Object -TypeName System.Management.Automation.PSCredential($servicePrincipalAppId, $securePassword)
         # Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $servicePrincipalTenantId
-        Connect-AzAccount -Identity
+        Connect-AzAccount -AccessToken $accessToken
     }
     else {
         Write-Host "Please connect your Azure account."
@@ -278,7 +281,7 @@ if (-Not (Set-AzContext -Subscription $subId -ErrorAction SilentlyContinue)) {
 }
 
 # $spnObjectId = $(Get-AzADServicePrincipal -ApplicationId $(Get-AzContext).Account.Id).Id
-$spnObjectId = $(Get-AzUserAssignedIdentity).PrincipalId
+$spnObjectId = $principalId
 $roleWritePermissions = Get-AzSPNRoleAssignment -RoleDefinitionName "write" -ObjectId $spnObjectId -ResourceGroupName $resourceGroup
 
 if(!$roleWritePermissions)
