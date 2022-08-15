@@ -42,27 +42,6 @@ Write-Host "TemplateBaseUrl: $templateBaseUrl"
 Invoke-WebRequest ($templateBaseUrl + "artifacts/PSProfile.ps1") -OutFile $PsHome\Profile.ps1
 .$PsHome\Profile.ps1
 
-Write-Host "Installing Azure CLI..."
-$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
-
-Write-Host "Az CLI Test..."
-Write-Host "*****************************"
-az
-Write-Host "*****************************"
-
-# Required for CLI commands
-Write-Header "Az CLI Login"
-# az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
-az login --identity
-
-# Loading Environment Variables
-Write-Header "Load Env Vars"
-Load-Variables -AppConfigUri $appConfigUri
-
-Write-Host "*****************************"
-Get-Item -Path Env:
-Write-Host "*****************************"
-
 # Extending C:\ partition to the maximum size
 Write-Host "Extending C:\ partition to the maximum size"
 Resize-Partition -DriveLetter C -Size $(Get-PartitionSupportedSize -DriveLetter C).SizeMax
@@ -77,7 +56,7 @@ Install-WindowsFeature -Name "DHCP" -IncludeManagementTools
 
 # Installing tools
 Write-Header "Installing Chocolatey Apps"
-$chocolateyAppList = 'az.powershell,kubernetes-cli,vcredist140,microsoft-edge,azcopy10,vscode,git,7zip,kubectx,terraform,putty.install,kubernetes-helm,ssms,dotnetcore-3.1-sdk,setdefaultbrowser,zoomit'
+$chocolateyAppList = 'azure-cli,az.powershell,kubernetes-cli,vcredist140,microsoft-edge,azcopy10,vscode,git,7zip,kubectx,terraform,putty.install,kubernetes-helm,ssms,dotnetcore-3.1-sdk,setdefaultbrowser,zoomit'
 
 try {
     choco config get cacheLocation
@@ -96,6 +75,29 @@ foreach ($app in $appsToInstall)
     Write-Host "Installing $app"
     & choco install $app /y -Force | Write-Output
 }
+
+# Write-Host "Installing Azure CLI..."
+# $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
+
+$Env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")  
+
+Write-Host "Az CLI Test..."
+Write-Host "*****************************"
+az
+Write-Host "*****************************"
+
+# Required for CLI commands
+Write-Header "Az CLI Login"
+# az login --service-principal --username $Env:spnClientID --password $Env:spnClientSecret --tenant $Env:spnTenantId
+az login --identity
+
+# Loading Environment Variables
+Write-Header "Load Env Vars"
+Load-Variables -AppConfigUri $appConfigUri
+
+Write-Host "*****************************"
+Get-Item -Path Env:
+Write-Host "*****************************"
 
 Write-Header "Fetching GitHub Artifacts"
 
