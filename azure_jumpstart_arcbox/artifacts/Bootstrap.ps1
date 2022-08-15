@@ -76,6 +76,8 @@ foreach ($app in $appsToInstall)
     & choco install $app /y -Force | Write-Output
 }
 
+RefreshEnv
+
 Write-Host "Az CLI Test..."
 Write-Host "*****************************"
 az
