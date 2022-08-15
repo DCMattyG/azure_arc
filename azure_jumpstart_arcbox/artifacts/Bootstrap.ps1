@@ -42,41 +42,8 @@ Write-Host "TemplateBaseUrl: $templateBaseUrl"
 Invoke-WebRequest ($templateBaseUrl + "artifacts/PSProfile.ps1") -OutFile $PsHome\Profile.ps1
 .$PsHome\Profile.ps1
 
-# Extending C:\ partition to the maximum size
-Write-Host "Extending C:\ partition to the maximum size"
-Resize-Partition -DriveLetter C -Size $(Get-PartitionSupportedSize -DriveLetter C).SizeMax
-
-# Installing Posh-SSH PowerShell Module
-Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
-Install-Module -Name Posh-SSH -Force
-
-# Installing DHCP service 
-Write-Output "Installing DHCP service"
-Install-WindowsFeature -Name "DHCP" -IncludeManagementTools
-
-# Installing tools
-Write-Header "Installing Chocolatey Apps"
-$chocolateyAppList = 'azure-cli,az.powershell,kubernetes-cli,vcredist140,microsoft-edge,azcopy10,vscode,git,7zip,kubectx,terraform,putty.install,kubernetes-helm,ssms,dotnetcore-3.1-sdk,setdefaultbrowser,zoomit'
-
-try {
-    choco config get cacheLocation
-}
-catch {
-    Write-Output "Chocolatey not detected, trying to install now"
-    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
-}
-
-Write-Host "Chocolatey Apps Specified"
-
-$appsToInstall = $chocolateyAppList -split "," | foreach { "$($_.Trim())" }
-
-foreach ($app in $appsToInstall)
-{
-    Write-Host "Installing $app"
-    & choco install $app /y -Force | Write-Output
-}
-
-RefreshEnv
+Write-Host "Installing Azure CLI..."
+$ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
 
 Write-Host "Az CLI Test..."
 Write-Host "*****************************"
@@ -95,6 +62,40 @@ Load-Variables -AppConfigUri $appConfigUri
 Write-Host "*****************************"
 Get-Item -Path Env:
 Write-Host "*****************************"
+
+# Extending C:\ partition to the maximum size
+Write-Host "Extending C:\ partition to the maximum size"
+Resize-Partition -DriveLetter C -Size $(Get-PartitionSupportedSize -DriveLetter C).SizeMax
+
+# Installing Posh-SSH PowerShell Module
+Install-PackageProvider -Name NuGet -MinimumVersion 2.8.5.201 -Force
+Install-Module -Name Posh-SSH -Force
+
+# Installing DHCP service 
+Write-Output "Installing DHCP service"
+Install-WindowsFeature -Name "DHCP" -IncludeManagementTools
+
+# Installing tools
+Write-Header "Installing Chocolatey Apps"
+$chocolateyAppList = 'az.powershell,kubernetes-cli,vcredist140,microsoft-edge,azcopy10,vscode,git,7zip,kubectx,terraform,putty.install,kubernetes-helm,ssms,dotnetcore-3.1-sdk,setdefaultbrowser,zoomit'
+
+try {
+    choco config get cacheLocation
+}
+catch {
+    Write-Output "Chocolatey not detected, trying to install now"
+    Invoke-Expression ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))
+}
+
+Write-Host "Chocolatey Apps Specified"
+
+$appsToInstall = $chocolateyAppList -split "," | foreach { "$($_.Trim())" }
+
+foreach ($app in $appsToInstall)
+{
+    Write-Host "Installing $app"
+    & choco install $app /y -Force | Write-Output
+}
 
 Write-Header "Fetching GitHub Artifacts"
 
