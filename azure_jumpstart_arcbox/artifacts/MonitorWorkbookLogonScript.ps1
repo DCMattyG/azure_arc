@@ -8,7 +8,7 @@ Start-Transcript -Path $ArcBoxLogsDir\MonitorWorkbookLogonScript.log
 az login --identity
 
 # Loading Environment Variables
-Write-Host "Loading environment variables"
+Write-Header "Load Env Vars"
 Load-Variables -AppConfigUri $Env:appConfigUri
 
 # Configure mgmtMonitorWorkbook.json template with subscription ID and resource group values
