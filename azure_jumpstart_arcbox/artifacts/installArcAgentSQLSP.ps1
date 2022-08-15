@@ -29,11 +29,13 @@ $servicePrincipalAppId = $spnClientId
 $servicePrincipalTenantId = $spnTenantId
 $servicePrincipalSecret = $spnClientSecret
 
-$unattended = $servicePrincipalAppId -And $servicePrincipalTenantId -And $servicePrincipalSecret
+# $unattended = $servicePrincipalAppId -And $servicePrincipalTenantId -And $servicePrincipalSecret
+$unattended = $true
 
-$azurePassword = ConvertTo-SecureString $servicePrincipalSecret -AsPlainText -Force
-$psCred = New-Object System.Management.Automation.PSCredential($servicePrincipalAppId , $azurePassword)
-Connect-AzAccount -Credential $psCred -TenantId $servicePrincipalTenantId -ServicePrincipal
+# $azurePassword = ConvertTo-SecureString $servicePrincipalSecret -AsPlainText -Force
+# $psCred = New-Object System.Management.Automation.PSCredential($servicePrincipalAppId , $azurePassword)
+# Connect-AzAccount -Credential $psCred -TenantId $servicePrincipalTenantId -ServicePrincipal
+Connect-AzAccount -Identity
 Set-AzContext -Subscription $subId
 
 function Get-AzSPNRoleAssignment {
@@ -250,13 +252,14 @@ if (-Not (Get-InstalledModule -Name Az.Accounts -MinimumVersion 2.2 -ErrorAction
 $context = Get-AzContext
 if (!$context) {
     if ($unattended) {
-        $securePassword = $servicePrincipalSecret
-        if ($servicePrincipalSecret -is [String]) {
-            Write-Warning -Message "Saving a plaintext password presents a security risk. Consider storing your password in a secure file."
-            $securePassword = ConvertTo-SecureString -String $servicePrincipalSecret -AsPlainText -Force
-        }
-        $pscredential = New-Object -TypeName System.Management.Automation.PSCredential($servicePrincipalAppId, $securePassword)
-        Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $servicePrincipalTenantId
+        # $securePassword = $servicePrincipalSecret
+        # if ($servicePrincipalSecret -is [String]) {
+        #     Write-Warning -Message "Saving a plaintext password presents a security risk. Consider storing your password in a secure file."
+        #     $securePassword = ConvertTo-SecureString -String $servicePrincipalSecret -AsPlainText -Force
+        # }
+        # $pscredential = New-Object -TypeName System.Management.Automation.PSCredential($servicePrincipalAppId, $securePassword)
+        # Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $servicePrincipalTenantId
+        Connect-AzAccount -Identity
     }
     else {
         Write-Host "Please connect your Azure account."
@@ -274,7 +277,8 @@ if (-Not (Set-AzContext -Subscription $subId -ErrorAction SilentlyContinue)) {
     return
 }
 
-$spnObjectId = $(Get-AzADServicePrincipal -ApplicationId $(Get-AzContext).Account.Id).Id
+# $spnObjectId = $(Get-AzADServicePrincipal -ApplicationId $(Get-AzContext).Account.Id).Id
+$spnObjectId = $(Get-AzUserAssignedIdentity).PrincipalId
 $roleWritePermissions = Get-AzSPNRoleAssignment -RoleDefinitionName "write" -ObjectId $spnObjectId -ResourceGroupName $resourceGroup
 
 if(!$roleWritePermissions)
