@@ -79,6 +79,7 @@ var mySettings = {
   adminUsername:              windowsAdminUsername
   // spnClientId:                spnClientId
   // spnTenantId:                spnTenantId
+  vmPrincipalId:              principalId
   spnAuthority:               spnAuthority
   subscriptionId:             subscription().subscriptionId
   resourceGroup:              resourceGroup().name
