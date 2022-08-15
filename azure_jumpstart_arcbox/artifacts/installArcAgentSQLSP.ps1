@@ -38,7 +38,7 @@ $unattended = $true
 # $azurePassword = ConvertTo-SecureString $servicePrincipalSecret -AsPlainText -Force
 # $psCred = New-Object System.Management.Automation.PSCredential($servicePrincipalAppId , $azurePassword)
 # Connect-AzAccount -Credential $psCred -TenantId $servicePrincipalTenantId -ServicePrincipal
-Connect-AzAccount -AccessToken $accessToken
+Connect-AzAccount -AccessToken $accessToken -AccountId $principalId
 Set-AzContext -Subscription $subId
 
 function Get-AzSPNRoleAssignment {
@@ -262,7 +262,7 @@ if (!$context) {
         # }
         # $pscredential = New-Object -TypeName System.Management.Automation.PSCredential($servicePrincipalAppId, $securePassword)
         # Connect-AzAccount -ServicePrincipal -Credential $pscredential -Tenant $servicePrincipalTenantId
-        Connect-AzAccount -AccessToken $accessToken
+        Connect-AzAccount -AccessToken $accessToken -AccountId $principalId
     }
     else {
         Write-Host "Please connect your Azure account."
