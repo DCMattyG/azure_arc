@@ -38,8 +38,8 @@ $unattended = $true
 # $azurePassword = ConvertTo-SecureString $servicePrincipalSecret -AsPlainText -Force
 # $psCred = New-Object System.Management.Automation.PSCredential($servicePrincipalAppId , $azurePassword)
 # Connect-AzAccount -Credential $psCred -TenantId $servicePrincipalTenantId -ServicePrincipal
-Connect-AzAccount -AccessToken $accessToken -AccountId $principalId
-Set-AzContext -Subscription $subId
+# Connect-AzAccount -AccessToken $accessToken -AccountId $principalId
+# Set-AzContext -Subscription $subId
 
 function Get-AzSPNRoleAssignment {
     param(
