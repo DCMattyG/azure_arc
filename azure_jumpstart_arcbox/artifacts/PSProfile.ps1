@@ -19,27 +19,13 @@ function Load-Variables {
         $AppConfigUri
     )
 
-    Write-Host "Entering Load-Variables..."
-    Write-Host "AppConfigUri: $AppConfigUri"
-
     if($PSBoundParameters.Debug.IsPresent) {
-        Write-Host "Debug enabled..."
         $DebugPreference = "Continue"
     }
 
-    Write-Host "Fetching values from App Config..."
-
     $data = $(az appconfig kv list --endpoint $AppConfigUri --auth-mode login --resolve-keyvault | ConvertFrom-Json)
 
-    Write-Host "DATA:"
-    Write-Host "*****************************"
-    Write-Host $data
-    Write-Host "*****************************"
-
-    Write-Host "Setting process variables..."
-
     $data | ForEach-Object {
-        Write-Host "Loaded { $($_.key): $($_.value) }"
         Write-Debug "Loaded { $($_.key): $($_.value) }"
 
         [Environment]::SetEnvironmentVariable($_.key, $_.value, [System.EnvironmentVariableTarget]::Process)

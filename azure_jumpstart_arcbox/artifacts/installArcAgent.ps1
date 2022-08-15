@@ -11,10 +11,8 @@
  
  # Run connect command
  & "$Env:ProgramW6432\AzureConnectedMachineAgent\azcmagent.exe" connect `
- --service-principal-id $spnClientId `
- --service-principal-secret $spnClientSecret `
+ --access-token $accessToken `
  --resource-group $resourceGroup `
- --tenant-id $spnTenantId `
  --location $Azurelocation `
  --subscription-id $subscriptionId `
  --cloud "AzureCloud" `

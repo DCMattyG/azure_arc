@@ -76,15 +76,8 @@ foreach ($app in $appsToInstall)
     & choco install $app /y -Force | Write-Output
 }
 
-# Write-Host "Installing Azure CLI..."
-# $ProgressPreference = 'SilentlyContinue'; Invoke-WebRequest -Uri https://aka.ms/installazurecliwindows -OutFile .\AzureCLI.msi; Start-Process msiexec.exe -Wait -ArgumentList '/I AzureCLI.msi /quiet'; rm .\AzureCLI.msi
-
+# Refresh PATH after Chocolatey Installs
 $Env:Path = [System.Environment]::GetEnvironmentVariable("Path","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path","User")  
-
-Write-Host "Az CLI Test..."
-Write-Host "*****************************"
-az
-Write-Host "*****************************"
 
 # Required for CLI commands
 Write-Header "Az CLI Login"
@@ -94,10 +87,6 @@ az login --identity
 # Loading Environment Variables
 Write-Header "Load Env Vars"
 Load-Variables -AppConfigUri $appConfigUri
-
-Write-Host "*****************************"
-Get-Item -Path Env:
-Write-Host "*****************************"
 
 Write-Header "Fetching GitHub Artifacts"
 
