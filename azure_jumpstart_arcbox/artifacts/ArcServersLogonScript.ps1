@@ -141,11 +141,11 @@ Invoke-Command -VMName ArcBox-SQL -ScriptBlock { Get-NetAdapter | Restart-NetAda
 Start-Sleep -Seconds 5
 
 # Configure the ArcBox Hyper-V host to allow the nested VMs onboard as Azure Arc-enabled servers
-Write-Header "Blocking IMDS"
-Write-Output "Configure the ArcBox VM to allow the nested VMs onboard as Azure Arc-enabled servers"
-Set-Service WindowsAzureGuestAgent -StartupType Disabled -Verbose
-Stop-Service WindowsAzureGuestAgent -Force -Verbose
-New-NetFirewallRule -Name BlockAzureIMDS -DisplayName "Block access to Azure IMDS" -Enabled True -Profile Any -Direction Outbound -Action Block -RemoteAddress 169.254.169.254
+# Write-Header "Blocking IMDS"
+# Write-Output "Configure the ArcBox VM to allow the nested VMs onboard as Azure Arc-enabled servers"
+# Set-Service WindowsAzureGuestAgent -StartupType Disabled -Verbose
+# Stop-Service WindowsAzureGuestAgent -Force -Verbose
+# New-NetFirewallRule -Name BlockAzureIMDS -DisplayName "Block access to Azure IMDS" -Enabled True -Profile Any -Direction Outbound -Action Block -RemoteAddress 169.254.169.254
 
 # Getting the Ubuntu nested VM IP address
 $UbuntuVmIp = Get-VM -Name ArcBox-Ubuntu | Select-Object -ExpandProperty NetworkAdapters | Select-Object -ExpandProperty IPAddresses | Select-Object -Index 0
@@ -165,7 +165,7 @@ $hasPermission = $rolePermissions | Where-Object {($_.principalId -eq $spnObject
 # Copying the Azure Arc Connected Agent to nested VMs
 Write-Header "Customize Onboarding Scripts"
 Write-Output "Replacing values within Azure Arc connected machine agent install scripts..."
-$accessToken = $(Get-AzAccessToken).Token
+$accessToken = $(az account get-access-token --query accessToken -o tsv)
 (Get-Content -path "$agentScript\installArcAgent.ps1" -Raw) -replace '\$accessToken',"'$accessToken'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$agentScript\installArcAgentModified.ps1"
 (Get-Content -path "$agentScript\installArcAgentUbuntu.sh" -Raw) -replace '\$accessToken',"'$accessToken'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$agentScript\installArcAgentModifiedUbuntu.sh"
 (Get-Content -path "$agentScript\installArcAgentCentOS.sh" -Raw) -replace '\$accessToken',"'$accessToken'" -replace '\$resourceGroup',"'$Env:resourceGroup'" -replace '\$azureLocation',"'$Env:azureLocation'" -replace '\$subscriptionId',"'$Env:subscriptionId'" | Set-Content -Path "$agentScript\installArcAgentModifiedCentOS.sh"

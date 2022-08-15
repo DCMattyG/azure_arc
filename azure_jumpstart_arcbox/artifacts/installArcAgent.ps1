@@ -1,3 +1,11 @@
+ # Block Azure IMDS communication
+New-NetFirewallRule -DisplayName "Block Azure IMDS" `
+-Direction Outbound `
+-LocalPort Any `
+-Protocol TCP `
+-Action Block `
+-RemoteAddress "169.254.169.254"
+
  # Download the package
  function download() {$ProgressPreference="SilentlyContinue"; Invoke-WebRequest -Uri https://aka.ms/AzureConnectedMachineAgent -OutFile AzureConnectedMachineAgent.msi}
  download

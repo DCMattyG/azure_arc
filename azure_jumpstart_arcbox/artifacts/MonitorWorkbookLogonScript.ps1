@@ -9,7 +9,7 @@ az login --identity
 
 # Loading Environment Variables
 Write-Host "Loading environment variables"
-Load-Variables -appConfigUri $Env:appConfigUri
+Load-Variables -AppConfigUri $Env:appConfigUri
 
 # Configure mgmtMonitorWorkbook.json template with subscription ID and resource group values
 Write-Host "Configuring Azure Monitor Workbook ARM template."
